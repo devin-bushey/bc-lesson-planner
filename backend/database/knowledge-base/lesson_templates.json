@@ -1,0 +1,290 @@
+{
+    "templates": {
+      "standard_lesson": {
+        "name": "Standard Lesson Template",
+        "description": "A traditional lesson structure with clear segments for engagement, instruction, and practice",
+        "duration": 45,
+        "components": [
+          {
+            "name": "Hook/Opening",
+            "duration": 5,
+            "description": "Engage students and activate prior knowledge",
+            "suggested_activities": [
+              "Interactive question",
+              "Short video",
+              "Physical movement",
+              "Show and tell",
+              "Picture prompt"
+            ]
+          },
+          {
+            "name": "Direct Instruction",
+            "duration": 15,
+            "description": "Introduction of new concept or skill",
+            "suggested_activities": [
+              "Teacher demonstration",
+              "Guided examples",
+              "Visual aids",
+              "Interactive whiteboard",
+              "Read aloud"
+            ]
+          },
+          {
+            "name": "Guided Practice",
+            "duration": 15,
+            "description": "Students practice with teacher support",
+            "suggested_activities": [
+              "Group work",
+              "Partner activities",
+              "Worksheet completion",
+              "Interactive games",
+              "Manipulative exploration"
+            ]
+          },
+          {
+            "name": "Independent Practice",
+            "duration": 5,
+            "description": "Students demonstrate understanding independently",
+            "suggested_activities": [
+              "Individual work",
+              "Writing exercise",
+              "Problem solving",
+              "Creation task",
+              "Application activity"
+            ]
+          },
+          {
+            "name": "Closure",
+            "duration": 5,
+            "description": "Review and assess understanding",
+            "suggested_activities": [
+              "Exit ticket",
+              "Group discussion",
+              "Quick quiz",
+              "Reflection journal",
+              "Share out"
+            ]
+          }
+        ]
+      },
+      "inquiry_based": {
+        "name": "Inquiry-Based Lesson",
+        "description": "Student-led exploration and discovery learning approach",
+        "duration": 60,
+        "components": [
+          {
+            "name": "Wonder",
+            "duration": 10,
+            "description": "Generate questions and curiosity",
+            "suggested_activities": [
+              "Question board",
+              "Wonder wall",
+              "Brainstorming",
+              "Problem presentation",
+              "Mystery item"
+            ]
+          },
+          {
+            "name": "Investigate",
+            "duration": 25,
+            "description": "Research and explore the topic",
+            "suggested_activities": [
+              "Research stations",
+              "Experiments",
+              "Field observations",
+              "Data collection",
+              "Interview experts"
+            ]
+          },
+          {
+            "name": "Create",
+            "duration": 15,
+            "description": "Synthesize findings into a product",
+            "suggested_activities": [
+              "Create a model",
+              "Make a presentation",
+              "Write a report",
+              "Design a solution",
+              "Build a prototype"
+            ]
+          },
+          {
+            "name": "Share",
+            "duration": 10,
+            "description": "Present findings and reflect",
+            "suggested_activities": [
+              "Gallery walk",
+              "Presentations",
+              "Group discussion",
+              "Peer feedback",
+              "Reflection writing"
+            ]
+          }
+        ]
+      },
+      "play_based": {
+        "name": "Play-Based Learning",
+        "description": "Ideal for early learning through structured play",
+        "duration": 30,
+        "components": [
+          {
+            "name": "Circle Time",
+            "duration": 5,
+            "description": "Set up the learning through play context",
+            "suggested_activities": [
+              "Songs",
+              "Story time",
+              "Movement games",
+              "Calendar routine",
+              "Weather check"
+            ]
+          },
+          {
+            "name": "Guided Play",
+            "duration": 15,
+            "description": "Teacher-facilitated play activities",
+            "suggested_activities": [
+              "Learning centers",
+              "Dramatic play",
+              "Building blocks",
+              "Art activities",
+              "Sensory play"
+            ]
+          },
+          {
+            "name": "Free Play",
+            "duration": 5,
+            "description": "Student-chosen activities",
+            "suggested_activities": [
+              "Center exploration",
+              "Imaginative play",
+              "Outdoor play",
+              "Social interaction",
+              "Individual play"
+            ]
+          },
+          {
+            "name": "Reflection",
+            "duration": 5,
+            "description": "Share and discuss play experiences",
+            "suggested_activities": [
+              "Show and tell",
+              "Drawing",
+              "Group discussion",
+              "Partner share",
+              "Story creation"
+            ]
+          }
+        ]
+      },
+      "literacy_focus": {
+        "name": "Literacy Block",
+        "description": "Structured literacy instruction and practice",
+        "duration": 45,
+        "components": [
+          {
+            "name": "Read Aloud",
+            "duration": 10,
+            "description": "Teacher reads and models comprehension strategies",
+            "suggested_activities": [
+              "Picture walk",
+              "Predictions",
+              "Think aloud",
+              "Vocabulary introduction",
+              "Comprehension questions"
+            ]
+          },
+          {
+            "name": "Mini Lesson",
+            "duration": 10,
+            "description": "Focused instruction on specific skill",
+            "suggested_activities": [
+              "Phonics lesson",
+              "Vocabulary work",
+              "Writing demonstration",
+              "Grammar focus",
+              "Reading strategy"
+            ]
+          },
+          {
+            "name": "Independent Practice",
+            "duration": 20,
+            "description": "Students practice reading and writing",
+            "suggested_activities": [
+              "Silent reading",
+              "Journal writing",
+              "Reading response",
+              "Word work",
+              "Book creation"
+            ]
+          },
+          {
+            "name": "Share",
+            "duration": 5,
+            "description": "Celebrate and reflect on learning",
+            "suggested_activities": [
+              "Author's chair",
+              "Partner share",
+              "Group discussion",
+              "Learning celebration",
+              "Next steps planning"
+            ]
+          }
+        ]
+      },
+      "differentiated_stations": {
+        "name": "Differentiated Learning Stations",
+        "description": "Multiple activities at different levels",
+        "duration": 60,
+        "components": [
+          {
+            "name": "Introduction",
+            "duration": 5,
+            "description": "Explain station activities and expectations",
+            "suggested_activities": [
+              "Station preview",
+              "Group assignments",
+              "Material distribution",
+              "Goal setting",
+              "Schedule review"
+            ]
+          },
+          {
+            "name": "Station Rotation",
+            "duration": 45,
+            "description": "Students rotate through learning stations",
+            "suggested_activities": [
+              "Teacher-led group",
+              "Technology station",
+              "Hands-on activity",
+              "Independent work",
+              "Collaborative task"
+            ]
+          },
+          {
+            "name": "Wrap-up",
+            "duration": 10,
+            "description": "Share learning and clean up",
+            "suggested_activities": [
+              "Group share",
+              "Clean up routine",
+              "Learning summary",
+              "Next steps preview",
+              "Reflection"
+            ]
+          }
+        ]
+      }
+    },
+    "metadata": {
+      "version": "1.0",
+      "last_updated": "2024-02-15",
+      "notes": "Templates designed for BC elementary curriculum",
+      "supported_grades": ["K", "1", "2"],
+      "customization_options": {
+        "duration": "Can be adjusted based on class schedule",
+        "components": "Activities can be modified for subject and grade level",
+        "assessment": "Add formative or summative assessment as needed"
+      }
+    }
+  }
