@@ -1,96 +1,39 @@
 import os
 from dotenv import load_dotenv
-from typing import List, Dict
-import json
-import openai
 from datetime import datetime
-import logging
-import psycopg2
-from psycopg2.extras import Json
-import lancedb
+import json
+from typing import Dict
+from database.db_manager import DatabaseManager
+from utils.logger import setup_logger
+import openai
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Set up logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
+# Set up logging
+logger = setup_logger()
 
 class LessonPlannerAgent:
     def __init__(self, grade_level: str, subject: str):
         self.grade_level = grade_level
         self.subject = subject
-        self.conn = self._connect_to_db()  # Keep PostgreSQL for lesson plans
-        self.db = lancedb.connect("database/vectordb/data/lancedb")  # Add LanceDB connection
-        self.curriculum_table = self.db.open_table("bc_curriculum_website")
-        self.lesson_templates = self._load_lesson_templates()
+        self.db_manager = DatabaseManager()
+        self.lesson_templates = self.db_manager.load_lesson_templates()
 
-    def _load_lesson_templates(self) -> List[Dict]:
-        """Load lesson plan templates from database."""
-        with self.conn.cursor() as cursor:
-            cursor.execute("SELECT data FROM lesson_templates WHERE id = 1")
-            result = cursor.fetchone()
-            return result[0] if result else []
-
-    def _get_previous_plans(self, limit: int = 5) -> List[Dict]:
-        """Get the most recent lesson plans for this grade and subject."""
-        with self.conn.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT date, content, metadata 
-                FROM lesson_plans 
-                WHERE grade_level = %s AND subject = %s 
-                ORDER BY date DESC 
-                LIMIT %s
-                """,
-                (self.grade_level, self.subject, limit)
-            )
-            results = cursor.fetchall()
-            return [
-                {
-                    "date": result[0],
-                    "content": result[1],
-                    "metadata": result[2]
-                }
-                for result in results
-            ]
-
-    def _create_context_prompt(self, previous_plans: List[Dict]) -> str:
-        """Create a prompt that includes context from previous plans."""
+    def _create_context_prompt(self, previous_plans):
         context = "Previous lesson plans covered:\n"
         for plan in previous_plans:
             logger.info(f"Using previous plan {plan.get('date')}, Subject: {plan.get('subject')}")
             context += f"- Date: {plan.get('date')}, Subject: {plan.get('subject')}, "
             context += f"Previous plan: {json.dumps(plan.get('content', {}), indent=2)}\n"
-        
         return context
 
-    def _connect_to_db(self):
-        """Connect to the PostgreSQL database."""
-        conn = psycopg2.connect(
-            dbname=os.getenv("POSTGRES_DB"),
-            user=os.getenv("POSTGRES_USER"),
-            password=os.getenv("POSTGRES_PASSWORD"),
-            host=os.getenv("POSTGRES_HOST"),
-            port=os.getenv("POSTGRES_PORT")
-        )
-        return conn
-
     async def _get_curriculum_context(self, query: str, num_results: int = 5) -> str:
-        """Search curriculum database for relevant content."""
-        # First, create a focused search query using GPT
-        search_query = await self._generate_search_query(query)
-        
-        # Search LanceDB
-        results = self.curriculum_table.search(query=search_query).limit(num_results)
+        search_query = await self.generate_search_query(query)
+        results = self.db_manager.curriculum_table.search(query=search_query).limit(num_results)
         df = results.to_pandas()
         
-        # Format results into context
         contexts = []
         for _, row in df.iterrows():
             text = row['text']
@@ -99,9 +42,8 @@ class LessonPlannerAgent:
             contexts.append(f"{text}{source}")
             
         return "\n\n".join(contexts)
-
-    async def _generate_search_query(self, context: str) -> str:
-        """Use GPT to generate a focused search query."""
+    
+    async def generate_search_query(self, context: str) -> str:
         response = openai.chat.completions.create(
             model="gpt-4",
             messages=[
@@ -111,12 +53,23 @@ class LessonPlannerAgent:
         )
         return response.choices[0].message.content
 
+    
+    async def generate_lesson_plan(prompt: str) -> Dict:
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a curriculum specialist for BC schools. Format your responses in clean HTML that can be directly rendered in a rich text editor."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content
+
     async def generate_daily_plan(self) -> Dict:
         logger.info(f"Generating lesson plan for Grade {self.grade_level} {self.subject}")
 
         """Generate a lesson plan for today, considering previous plans."""
         # Get previous plans for context
-        previous_plans = self._get_previous_plans()
+        previous_plans = self.db_manager.get_previous_plans(self.grade_level, self.subject)
         context_prompt = self._create_context_prompt(previous_plans)
         
         # Get curriculum context based on grade and subject
@@ -205,6 +158,17 @@ class LessonPlannerAgent:
         Ensure consistent indentation and spacing in the HTML output.
         """
 
+        # print(curriculum_context)
+
+        # print("****")
+
+        # print(context_prompt)
+
+        # print("****")
+
+        # print(json.dumps(templates.get('play_based', {}), indent=2))
+
+
         # Generate the lesson plan
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
@@ -230,24 +194,6 @@ class LessonPlannerAgent:
         }
 
         # Save the plan
-        self._save_plan(plan)
+        self.db_manager.save_plan(plan)
         
         return plan
-
-    def _save_plan(self, plan: Dict):
-        """Save the lesson plan to the PostgreSQL database."""
-        with self.conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO lesson_plans (date, grade_level, subject, content, metadata)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                (
-                    plan["date"],
-                    plan["grade_level"],
-                    plan["subject"],
-                    Json(plan["content"]),
-                    Json(plan["metadata"])
-                )
-            )
-            self.conn.commit()
