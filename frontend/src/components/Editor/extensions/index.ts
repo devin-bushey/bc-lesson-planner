@@ -15,6 +15,7 @@ import Underline from '@tiptap/extension-underline';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import Color from '@tiptap/extension-color';
+import TextStyle from '@tiptap/extension-text-style';
 
 export const defaultExtensions = [
     StarterKit,
@@ -48,5 +49,8 @@ export const defaultExtensions = [
     Underline,
     Subscript,
     Superscript,
-    Color,
+    Color.configure({
+        types: ['textStyle']
+    }),
+    TextStyle,
 ];

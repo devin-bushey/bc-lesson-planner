@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Editor from './Editor/Editor';
 import styles from './LessonPlanDisplay.module.css';
 
@@ -16,10 +16,23 @@ interface LessonPlan {
 
 interface LessonPlanDisplayProps {
     lessonPlan: LessonPlan | null;
-    onContentChange?: (content: string) => void;
+    onContentChange: (content: string) => void;
 }
 
 const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onContentChange }) => {
+    const [editorContent, setEditorContent] = useState<string>('');
+
+    useEffect(() => {
+        if (lessonPlan?.content) {
+            setEditorContent(lessonPlan.content);
+        }
+    }, [lessonPlan]);
+
+    const handleEditorUpdate = (content: string) => {
+        setEditorContent(content);
+        onContentChange(content);
+    };
+
     if (!lessonPlan) {
         return <div className={styles.container}>No lesson plan generated yet.</div>;
     }
@@ -49,8 +62,9 @@ const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onCon
             </div>
             <h3 className={styles.header}>Content:</h3>
             <Editor 
-                content={lessonPlan.content}
-                onUpdate={onContentChange}
+                key={lessonPlan.content}
+                content={lessonPlan.content || ''}
+                onUpdate={handleEditorUpdate}
             />
         </div>
     );

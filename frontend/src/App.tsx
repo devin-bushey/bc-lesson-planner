@@ -1,24 +1,35 @@
-import { useState } from 'react'
+import React, { useState } from 'react';
 import LessonPlanForm from './components/LessonPlanForm';
 import LessonPlanDisplay from './components/LessonPlanDisplay';
 
 import './App.css'
 
-const App = () => {
-  const [lessonPlan, setLessonPlan] = useState<any>(null);
+const App: React.FC = () => {
+    const [lessonPlan, setLessonPlan] = useState<any>(null);
+    const [hasEditorChanges, setHasEditorChanges] = useState(false);
 
-  const handlePlanGenerated = (plan: any) => {
-      console.log('Plan generated:', plan);
-      setLessonPlan(plan);
-  };
+    const handlePlanGenerated = (plan: any) => {
+        setLessonPlan(plan);
+        setHasEditorChanges(false);
+    };
 
-  return (
-      <div>
-          <h1>Lesson Planner</h1>
-          <LessonPlanForm onPlanGenerated={handlePlanGenerated} />
-          {lessonPlan && <LessonPlanDisplay lessonPlan={lessonPlan} />}
-      </div>
-  );
+    const handleContentChange = (content: string) => {
+        setHasEditorChanges(true);
+    };
+
+    return (
+        <div>
+            <h1>Lesson Planner</h1>
+            <LessonPlanForm 
+                onPlanGenerated={handlePlanGenerated}
+                hasEditorChanges={hasEditorChanges}
+            />
+            <LessonPlanDisplay
+                lessonPlan={lessonPlan}
+                onContentChange={handleContentChange}
+            />
+        </div>
+    );
 };
 
 export default App;
