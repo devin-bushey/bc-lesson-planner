@@ -1,0 +1,41 @@
+.container {
+    margin-top: 2rem;
+    padding: 2rem;
+    background: #1e2432;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .header {
+    color: #e2e8f0;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #2d3748;
+  }
+  
+  .metadata {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .metadataItem {
+    color: #a0aec0;
+  }
+  
+  .metadataLabel {
+    font-weight: 600;
+    color: #cbd5e0;
+    margin-bottom: 0.25rem;
+  }
+  
+  .content {
+    background: #2d3748;
+    padding: 1.5rem;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    line-height: 1.5;
+    color: #e2e8f0;
+  }

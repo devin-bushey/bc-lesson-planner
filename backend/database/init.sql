@@ -25,15 +25,49 @@ CREATE TABLE IF NOT EXISTS lesson_plans (
 );
 
 -- Create indexes
+CREATE INDEX IF NOT EXISTS idx_curriculum_data ON curriculum USING GIN (data);
+CREATE INDEX IF NOT EXISTS idx_lesson_templates_data ON lesson_templates USING GIN (data);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_grade_subject ON lesson_plans(grade_level, subject);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_date ON lesson_plans(date DESC);
 
--- -- Insert default curriculum if not exists
-INSERT INTO curriculum (id, data)
-VALUES (1, '{"elementary": {}}')
-ON CONFLICT (id) DO NOTHING;
+-- Function to update timestamp
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
 
--- Insert default lesson template if not exists
+-- Triggers for updating timestamps
+CREATE TRIGGER update_curriculum_timestamp
+    BEFORE UPDATE ON curriculum
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER update_lesson_templates_timestamp
+    BEFORE UPDATE ON lesson_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER update_lesson_plans_timestamp
+    BEFORE UPDATE ON lesson_plans
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+
+-- Load initial data from JSON files
+\set content `cat '/knowledge-base/bc_curriculum.json'`
+INSERT INTO curriculum (id, data)
+SELECT 1, :'content'::jsonb
+ON CONFLICT (id) DO UPDATE 
+SET data = EXCLUDED.data,
+    updated_at = CURRENT_TIMESTAMP;
+
+\set templates `cat '/knowledge-base/lesson_templates.json'`
 INSERT INTO lesson_templates (id, data)
-VALUES (1, '[]')
-ON CONFLICT (id) DO NOTHING;
+SELECT 1, :'templates'::jsonb
+ON CONFLICT (id) DO UPDATE 
+SET data = EXCLUDED.data,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- $ docker exec -it bc-lesson-planner-db-1 psql -U user -d mydatabase

@@ -2,10 +2,8 @@ import os
 from dotenv import load_dotenv
 from typing import List, Dict
 import json
-from pathlib import Path
 import openai
-from datetime import datetime, timedelta
-import glob
+from datetime import datetime
 import logging
 import psycopg2
 from psycopg2.extras import Json
@@ -72,8 +70,9 @@ class LessonPlannerAgent:
         """Create a prompt that includes context from previous plans."""
         context = "Previous lesson plans covered:\n"
         for plan in previous_plans:
-            context += f"- Date: {plan.get('date')}, Topic: {plan.get('topic')}, "
-            context += f"Main objectives: {', '.join(plan.get('objectives', []))}\n"
+            logger.info(f"Using previous plan {plan.get('date')}, Subject: {plan.get('subject')}")
+            context += f"- Date: {plan.get('date')}, Subject: {plan.get('subject')}, "
+            context += f"Previous plan: {json.dumps(plan.get('content', {}), indent=2)}\n"
         
         return context
 
@@ -99,6 +98,9 @@ class LessonPlannerAgent:
         
         # Get curriculum objectives for this grade and subject
         curriculum = self.curriculum_db.get("elementary", {}).get(f"grade_{self.grade_level}", {}).get(self.subject, {})
+
+        # Get lesson plan templates
+        templates = self.lesson_templates.get("templates", {})
         
         # Create the main prompt
         prompt = f"""
@@ -106,6 +108,12 @@ class LessonPlannerAgent:
         
         Previous context:
         {context_prompt}
+
+        Use one of these templates to structure your lesson:
+        {json.dumps(templates.get('play_based', {}), indent=2)}
+
+        Curriculum big ideas:
+        {json.dumps(curriculum.get('big_ideas', {}), indent=2)}
         
         Curriculum objectives:
         {json.dumps(curriculum.get('content', {}), indent=2)}
@@ -115,9 +123,11 @@ class LessonPlannerAgent:
         Do not format text in markdown. 
         """
 
+        # logger.info(f"Sending prompt: {prompt}")
+
         # Generate the lesson plan
         response = openai.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a curriculum specialist for BC schools."},
                 {"role": "user", "content": prompt}

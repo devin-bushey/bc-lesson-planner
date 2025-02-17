@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './LessonPlanDisplay.module.css';
 
 interface LessonPlan {
     date: string;
@@ -17,20 +18,35 @@ interface LessonPlanDisplayProps {
 }
 
 const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan }) => {
-
     if (!lessonPlan) {
-        return <div>No lesson plan generated yet.</div>;
+        return <div className={styles.container}>No lesson plan generated yet.</div>;
     }
 
     return (
-        <div>
-            <h2>Lesson Plan for Grade {lessonPlan.grade_level} - {lessonPlan.subject}</h2>
-            <p><strong>Date:</strong> {lessonPlan.date}</p>
-            <p><strong>Generated At:</strong> {lessonPlan.metadata.generated_at}</p>
-            <p><strong>Curriculum Version:</strong> {lessonPlan.metadata.curriculum_version}</p>
-            <p><strong>Previous Plans Referenced:</strong> {lessonPlan.metadata.previous_plans_referenced}</p>
-            <h3>Content:</h3>
-            <pre>{lessonPlan.content}</pre>
+        <div className={styles.container}>
+            <h2 className={styles.header}>
+                Lesson Plan for Grade {lessonPlan.grade_level} - {lessonPlan.subject}
+            </h2>
+            <div className={styles.metadata}>
+                <div className={styles.metadataItem}>
+                    <div className={styles.metadataLabel}>Date</div>
+                    <div>{lessonPlan.date}</div>
+                </div>
+                <div className={styles.metadataItem}>
+                    <div className={styles.metadataLabel}>Generated At</div>
+                    <div>{lessonPlan.metadata.generated_at}</div>
+                </div>
+                <div className={styles.metadataItem}>
+                    <div className={styles.metadataLabel}>Curriculum Version</div>
+                    <div>{lessonPlan.metadata.curriculum_version}</div>
+                </div>
+                <div className={styles.metadataItem}>
+                    <div className={styles.metadataLabel}>Previous Plans Referenced</div>
+                    <div>{lessonPlan.metadata.previous_plans_referenced}</div>
+                </div>
+            </div>
+            <h3 className={styles.header}>Content:</h3>
+            <pre className={styles.content}>{lessonPlan.content}</pre>
         </div>
     );
 };
