@@ -1,0 +1,10 @@
+.editorContainer {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #2d3748;
+}
+
+.editorContent {
+    padding: 1rem;
+}

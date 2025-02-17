@@ -1,0 +1,51 @@
+.menuBar {
+    padding: 0.5rem;
+    border-bottom: 1px solid #4a5568;
+    display: flex;
+    gap: 0.5rem;
+    background: #2d3748;
+    border-radius: 4px 4px 0 0;
+    flex-wrap: wrap;
+}
+
+.menuGroup {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+    border-right: 1px solid #4a5568;
+}
+
+.menuGroup:last-child {
+    border-right: none;
+}
+
+.menuBar button {
+    padding: 0.3rem 0.8rem;
+    border: 1px solid #4a5568;
+    background: #1a202c;
+    color: #e2e8f0;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+}
+
+.menuBar button:hover {
+    background: #2d3748;
+}
+
+.menuBar button.isActive {
+    background: #4a5568;
+    color: white;
+}
+
+.menuBar input[type="color"] {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid #4a5568;
+    border-radius: 4px;
+    cursor: pointer;
+}

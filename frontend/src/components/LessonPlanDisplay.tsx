@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
+import React from 'react';
+import Editor from './Editor/Editor';
 import styles from './LessonPlanDisplay.module.css';
 
 interface LessonPlan {
@@ -22,26 +20,6 @@ interface LessonPlanDisplayProps {
 }
 
 const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onContentChange }) => {
-    const editor = useEditor({
-        extensions: [
-            StarterKit,
-            Placeholder.configure({
-                placeholder: 'Start writing your lesson plan...',
-            }),
-        ],
-        content: '',
-        onUpdate: ({ editor }) => {
-            const html = editor.getHTML();
-            onContentChange?.(html);
-        },
-    });
-
-    useEffect(() => {
-        if (lessonPlan && editor) {
-            editor.commands.setContent(lessonPlan.content);
-        }
-    }, [lessonPlan, editor]);
-
     if (!lessonPlan) {
         return <div className={styles.container}>No lesson plan generated yet.</div>;
     }
@@ -70,9 +48,10 @@ const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onCon
                 </div>
             </div>
             <h3 className={styles.header}>Content:</h3>
-            <div className={styles.editorWrapper}>
-                <EditorContent editor={editor} className={styles.content} />
-            </div>
+            <Editor 
+                content={lessonPlan.content}
+                onUpdate={onContentChange}
+            />
         </div>
     );
 };
