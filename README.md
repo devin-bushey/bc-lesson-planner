@@ -1,6 +1,6 @@
 # BC Lesson Planner
 
-A web application that generates lesson plans for BC curriculum using AI assistance. Built with React frontend and Flask backend.
+An AI Agent that helps Teachers in British Columbia generate and improve their lesson plans
 
 ## Tech Stack
 
