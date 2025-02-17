@@ -35,7 +35,7 @@ class DocumentSearch:
 # --------------------------------------------------------------
 
 def main():
-    searcher = DocumentSearch()
+    searcher = DocumentSearch(table_name="my_custom_table")
     
     # Basic search
     results = searcher.search("pdf", 2)

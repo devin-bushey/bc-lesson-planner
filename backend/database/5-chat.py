@@ -19,7 +19,7 @@ def init_db():
         LanceDB table object
     """
     db = lancedb.connect("data/lancedb")
-    return db.open_table("docling")
+    return db.open_table("bc_curriculum_website")
 
 
 def get_context(query: str, table, num_results: int = 3) -> str:
@@ -92,7 +92,7 @@ def get_chat_response(messages, context: str) -> str:
 
 
 # Initialize Streamlit app
-st.title("📚 Document Q&A")
+st.title("📚 BC Curriculum Q&A")
 
 # Initialize session state for chat history
 if "messages" not in st.session_state:
@@ -107,7 +107,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Chat input
-if prompt := st.chat_input("Ask a question about the document"):
+if prompt := st.chat_input("Ask a question"):
     # Display user message
     with st.chat_message("user"):
         st.markdown(prompt)
