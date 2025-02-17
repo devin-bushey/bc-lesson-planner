@@ -88,7 +88,6 @@ class LessonPlannerAgent:
         return conn
 
     async def generate_daily_plan(self) -> Dict:
-
         logger.info(f"Generating lesson plan for Grade {self.grade_level} {self.subject}")
 
         """Generate a lesson plan for today, considering previous plans."""
@@ -102,10 +101,57 @@ class LessonPlannerAgent:
         # Get lesson plan templates
         templates = self.lesson_templates.get("templates", {})
         
-        # Create the main prompt
+        # Update the prompt to request HTML formatting
         prompt = f"""
         Create a lesson plan for grade {self.grade_level} {self.subject} based on BC curriculum.
         
+        Format the response in HTML following these rules:
+        - Each section should be wrapped in a <div>
+        - Main sections should use <h2>
+        - Subsections should use <h3>
+        - Lists should be properly indented and structured like this:
+          <ul>
+            <li><strong>Key Point:</strong> Description goes here</li>
+            <li><strong>Activity:</strong> <span class="time">20 minutes</span> - Activity description</li>
+          </ul>
+        - Paragraphs should use <p> tags
+        - Important points should be in <strong> tags
+        - Time durations should use <span class="time">20 minutes</span>
+        - Add a line break <br> after each section
+        
+        Structure the content with these sections:
+        <div class="section">
+            <h2>Learning Objectives</h2>
+            <ul>
+                <li>Objective 1</li>
+                <li>Objective 2</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Materials Needed</h2>
+            <ul>
+                <li>Material 1</li>
+                <li>Material 2</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Lesson Flow</h2>
+            <h3>Introduction</h3>
+            <ul>
+                <li><span class="time">10 minutes</span> - Activity description</li>
+            </ul>
+            <h3>Main Activity</h3>
+            <ul>
+                <li><span class="time">30 minutes</span> - Activity description</li>
+            </ul>
+            <h3>Conclusion</h3>
+            <ul>
+                <li><span class="time">10 minutes</span> - Activity description</li>
+            </ul>
+        </div>
+
         Previous context:
         {context_prompt}
 
@@ -119,17 +165,14 @@ class LessonPlannerAgent:
         {json.dumps(curriculum.get('content', {}), indent=2)}
         
         Create a plan that builds upon previous lessons while introducing new content.
-        Include specific activities, materials needed, and assessment strategies.
-        Do not format text in markdown. 
+        Ensure consistent indentation and spacing in the HTML output.
         """
-
-        # logger.info(f"Sending prompt: {prompt}")
 
         # Generate the lesson plan
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a curriculum specialist for BC schools."},
+                {"role": "system", "content": "You are a curriculum specialist for BC schools. Format your responses in clean HTML that can be directly rendered in a rich text editor."},
                 {"role": "user", "content": prompt}
             ]
         )

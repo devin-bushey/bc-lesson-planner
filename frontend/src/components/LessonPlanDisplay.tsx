@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import styles from './LessonPlanDisplay.module.css';
 
 interface LessonPlan {
@@ -15,15 +18,36 @@ interface LessonPlan {
 
 interface LessonPlanDisplayProps {
     lessonPlan: LessonPlan | null;
+    onContentChange?: (content: string) => void;
 }
 
-const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan }) => {
+const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onContentChange }) => {
+    const editor = useEditor({
+        extensions: [
+            StarterKit,
+            Placeholder.configure({
+                placeholder: 'Start writing your lesson plan...',
+            }),
+        ],
+        content: '',
+        onUpdate: ({ editor }) => {
+            const html = editor.getHTML();
+            onContentChange?.(html);
+        },
+    });
+
+    useEffect(() => {
+        if (lessonPlan && editor) {
+            editor.commands.setContent(lessonPlan.content);
+        }
+    }, [lessonPlan, editor]);
+
     if (!lessonPlan) {
         return <div className={styles.container}>No lesson plan generated yet.</div>;
     }
 
     return (
-        <div className={styles.container}>
+        <div className={styles.containerTextEditor}>
             <h2 className={styles.header}>
                 Lesson Plan for Grade {lessonPlan.grade_level} - {lessonPlan.subject}
             </h2>
@@ -46,7 +70,9 @@ const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan }) => 
                 </div>
             </div>
             <h3 className={styles.header}>Content:</h3>
-            <pre className={styles.content}>{lessonPlan.content}</pre>
+            <div className={styles.editorWrapper}>
+                <EditorContent editor={editor} className={styles.content} />
+            </div>
         </div>
     );
 };
