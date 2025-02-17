@@ -14,6 +14,7 @@ const App: React.FC = () => {
     };
 
     const handleContentChange = (content: string) => {
+        console.log(content.length);
         setHasEditorChanges(true);
     };
 

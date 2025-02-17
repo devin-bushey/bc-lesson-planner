@@ -185,4 +185,4 @@ if prompt := st.chat_input("Ask a question"):
 # USAGE: Chatbot
 # --------------------------------------------------------------
 
-# $ streamlit run 5-chat.py 
+# $ streamlit run chat.py 

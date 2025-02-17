@@ -1,20 +1,18 @@
-# Use the official Python image as the base image
-FROM python:3.9
+# Use slim base image
+FROM python:3.9-slim
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file to the working directory
+# Copy only requirements first to leverage Docker cache
 COPY requirements.txt ./
 
-# Install the dependencies
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code to the working directory
+# Copy the rest of the application code
 COPY . .
 
-# Expose the port the app runs on
 EXPOSE 5000
 
-# Start the application
 CMD ["python", "app/app.py"]

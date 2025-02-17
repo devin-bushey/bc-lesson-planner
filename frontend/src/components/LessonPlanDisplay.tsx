@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Editor from './Editor/Editor';
 import styles from './LessonPlanDisplay.module.css';
 
@@ -20,16 +20,16 @@ interface LessonPlanDisplayProps {
 }
 
 const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onContentChange }) => {
-    const [editorContent, setEditorContent] = useState<string>('');
+    // const [editorContent, setEditorContent] = useState<string>('');
 
-    useEffect(() => {
-        if (lessonPlan?.content) {
-            setEditorContent(lessonPlan.content);
-        }
-    }, [lessonPlan]);
+    // useEffect(() => {
+    //     if (lessonPlan?.content) {
+    //         setEditorContent(lessonPlan.content);
+    //     }
+    // }, [lessonPlan]);
 
     const handleEditorUpdate = (content: string) => {
-        setEditorContent(content);
+        // setEditorContent(content);
         onContentChange(content);
     };
 
@@ -50,10 +50,6 @@ const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onCon
                 <div className={styles.metadataItem}>
                     <div className={styles.metadataLabel}>Generated At</div>
                     <div>{lessonPlan.metadata.generated_at}</div>
-                </div>
-                <div className={styles.metadataItem}>
-                    <div className={styles.metadataLabel}>Curriculum Version</div>
-                    <div>{lessonPlan.metadata.curriculum_version}</div>
                 </div>
                 <div className={styles.metadataItem}>
                     <div className={styles.metadataLabel}>Previous Plans Referenced</div>

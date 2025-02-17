@@ -7,7 +7,7 @@ def run_embedding_command(url: str, doc_type: str, table: str) -> bool:
     """Run a single embedding command and return success status."""
     command = [
         sys.executable,  # Use the current Python interpreter
-        "3-embedding.py",
+        "embedding.py",
         url,
         "--type", doc_type,
         "--table", table

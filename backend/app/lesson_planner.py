@@ -7,6 +7,7 @@ from datetime import datetime
 import logging
 import psycopg2
 from psycopg2.extras import Json
+import lancedb
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -24,17 +25,10 @@ class LessonPlannerAgent:
     def __init__(self, grade_level: str, subject: str):
         self.grade_level = grade_level
         self.subject = subject
-        self.conn = self._connect_to_db()
-        self.curriculum_db = self._load_curriculum()
+        self.conn = self._connect_to_db()  # Keep PostgreSQL for lesson plans
+        self.db = lancedb.connect("database/vectordb/data/lancedb")  # Add LanceDB connection
+        self.curriculum_table = self.db.open_table("bc_curriculum_website")
         self.lesson_templates = self._load_lesson_templates()
-
-
-    def _load_curriculum(self) -> Dict:
-        """Load BC curriculum data from database."""
-        with self.conn.cursor() as cursor:
-            cursor.execute("SELECT data FROM curriculum WHERE id = 1")
-            result = cursor.fetchone()
-            return result[0] if result else {}
 
     def _load_lesson_templates(self) -> List[Dict]:
         """Load lesson plan templates from database."""
@@ -87,6 +81,36 @@ class LessonPlannerAgent:
         )
         return conn
 
+    async def _get_curriculum_context(self, query: str, num_results: int = 5) -> str:
+        """Search curriculum database for relevant content."""
+        # First, create a focused search query using GPT
+        search_query = await self._generate_search_query(query)
+        
+        # Search LanceDB
+        results = self.curriculum_table.search(query=search_query).limit(num_results)
+        df = results.to_pandas()
+        
+        # Format results into context
+        contexts = []
+        for _, row in df.iterrows():
+            text = row['text']
+            metadata = row['metadata']
+            source = f"\nSource: {metadata.get('filename', 'Unknown')}"
+            contexts.append(f"{text}{source}")
+            
+        return "\n\n".join(contexts)
+
+    async def _generate_search_query(self, context: str) -> str:
+        """Use GPT to generate a focused search query."""
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are helping to search BC curriculum documents. Convert the context into a focused search query."},
+                {"role": "user", "content": f"Generate a search query for: Grade {self.grade_level} {self.subject} curriculum guidance about: {context}"}
+            ]
+        )
+        return response.choices[0].message.content
+
     async def generate_daily_plan(self) -> Dict:
         logger.info(f"Generating lesson plan for Grade {self.grade_level} {self.subject}")
 
@@ -95,8 +119,24 @@ class LessonPlannerAgent:
         previous_plans = self._get_previous_plans()
         context_prompt = self._create_context_prompt(previous_plans)
         
-        # Get curriculum objectives for this grade and subject
-        curriculum = self.curriculum_db.get("elementary", {}).get(f"grade_{self.grade_level}", {}).get(self.subject, {})
+        # Get curriculum context based on grade and subject
+        curriculum_query = f"curriculum objectives for grade {self.grade_level} {self.subject}"
+        curriculum_context = await self._get_curriculum_context(curriculum_query)
+
+        # Get specific content
+        # TODO: Too many API calls? $$$
+        # objectives = await self._get_curriculum_context("learning objectives and assessment criteria")
+        # activities = await self._get_curriculum_context("suggested activities and teaching strategies")
+        # assessment = await self._get_curriculum_context("assessment methods and success criteria")
+
+        # Objectives:
+        # {objectives}
+
+        # Suggested Activities:
+        # {activities}
+
+        # Assessment Methods:
+        # {assessment}
 
         # Get lesson plan templates
         templates = self.lesson_templates.get("templates", {})
@@ -105,6 +145,9 @@ class LessonPlannerAgent:
         prompt = f"""
         Create a lesson plan for grade {self.grade_level} {self.subject} based on BC curriculum.
         
+        Curriculum Context:
+        {curriculum_context}
+
         Format the response in HTML following these rules:
         - Each section should be wrapped in a <div>
         - Main sections should use <h2>
@@ -157,12 +200,6 @@ class LessonPlannerAgent:
 
         Use one of these templates to structure your lesson:
         {json.dumps(templates.get('play_based', {}), indent=2)}
-
-        Curriculum big ideas:
-        {json.dumps(curriculum.get('big_ideas', {}), indent=2)}
-        
-        Curriculum objectives:
-        {json.dumps(curriculum.get('content', {}), indent=2)}
         
         Create a plan that builds upon previous lessons while introducing new content.
         Ensure consistent indentation and spacing in the HTML output.
@@ -188,8 +225,7 @@ class LessonPlannerAgent:
             "content": plan_content,
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
-                "curriculum_version": self.curriculum_db.get("metadata", {}).get("version"),
-                "previous_plans_referenced": len(previous_plans)
+                "previous_plans_referenced": len(previous_plans) if previous_plans else 0
             }
         }
 

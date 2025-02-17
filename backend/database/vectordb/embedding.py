@@ -138,7 +138,7 @@ class DocumentEmbedder:
 # --------------------------------------------------------------
 # USAGE: Embedding into LanceDB
 #
-# python 3-embedding.py https://example.com --type website --table my_website_docs
+# python embedding.py https://example.com --type website --table my_website_docs
 # --------------------------------------------------------------
 
 def main():

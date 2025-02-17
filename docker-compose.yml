@@ -30,9 +30,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/database/knowledge-base:/knowledge-base
-      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./backend/database/init.sh:/docker-entrypoint-initdb.d/init.sh\
+      - ./backend/database/postgres/knowledge-base:/knowledge-base
+      - ./backend/database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/database/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh\
 
   pgadmin:
     image: dpage/pgadmin4

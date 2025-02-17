@@ -1,11 +1,4 @@
 -- Create tables if they don't exist
-CREATE TABLE IF NOT EXISTS curriculum (
-    id SERIAL PRIMARY KEY,
-    data JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE IF NOT EXISTS lesson_templates (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
@@ -25,7 +18,6 @@ CREATE TABLE IF NOT EXISTS lesson_plans (
 );
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS idx_curriculum_data ON curriculum USING GIN (data);
 CREATE INDEX IF NOT EXISTS idx_lesson_templates_data ON lesson_templates USING GIN (data);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_grade_subject ON lesson_plans(grade_level, subject);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_date ON lesson_plans(date DESC);
@@ -40,11 +32,6 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers for updating timestamps
-CREATE TRIGGER update_curriculum_timestamp
-    BEFORE UPDATE ON curriculum
-    FOR EACH ROW
-    EXECUTE FUNCTION update_timestamp();
-
 CREATE TRIGGER update_lesson_templates_timestamp
     BEFORE UPDATE ON lesson_templates
     FOR EACH ROW
@@ -56,12 +43,6 @@ CREATE TRIGGER update_lesson_plans_timestamp
     EXECUTE FUNCTION update_timestamp();
 
 -- Load initial data from JSON files
-\set content `cat '/knowledge-base/bc_curriculum.json'`
-INSERT INTO curriculum (id, data)
-SELECT 1, :'content'::jsonb
-ON CONFLICT (id) DO UPDATE 
-SET data = EXCLUDED.data,
-    updated_at = CURRENT_TIMESTAMP;
 
 \set templates `cat '/knowledge-base/lesson_templates.json'`
 INSERT INTO lesson_templates (id, data)
