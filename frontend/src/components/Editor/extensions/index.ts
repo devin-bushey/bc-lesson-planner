@@ -31,9 +31,10 @@ export const defaultExtensions = [
     }),
     Highlight,
     Link.configure({
-        openOnClick: false,
+        openOnClick: true, // Enable click handling
         HTMLAttributes: {
-            class: 'custom-link',
+            target: '_blank', // Open in new tab
+            class: 'video-link'
         },
     }),
     Image,

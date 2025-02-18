@@ -7,6 +7,7 @@ from database.db_manager import DatabaseManager
 from utils.logger import setup_logger
 import openai
 from .prompt_chains.lesson_plan_chain import LessonPlanChain
+from .integrations.educational_apis import YouTubeEducationalAPI
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -22,6 +23,7 @@ class LessonPlannerAgent:
         self.db_manager = DatabaseManager()
         self.lesson_templates = self.db_manager.load_lesson_templates()
         self.prompt_chain = LessonPlanChain()
+        self.youtube_api = YouTubeEducationalAPI()
 
     def _create_context_prompt(self, previous_plans):
         context = "Previous lesson plans covered:\n"
@@ -80,13 +82,20 @@ class LessonPlannerAgent:
         # Get lesson plan templates
         templates = self.lesson_templates.get("templates", {})
         
-        # Execute prompt chain
+        # Get educational videos for the lesson
+        educational_videos = await self.youtube_api.search_videos(
+            topic=self.subject,
+            grade_level=f"grade {self.grade_level}"
+        )
+
+        # Execute prompt chain with video resources
         chain_result = await self.prompt_chain.execute_chain(
             grade_level=self.grade_level,
             subject=self.subject,
             curriculum_context=curriculum_context,
             previous_context=context_prompt,
-            templates=templates
+            templates=templates,
+            video_resources=educational_videos  # Add video resources
         )
         
         # Create structured plan
@@ -98,7 +107,8 @@ class LessonPlannerAgent:
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
                 "previous_plans_referenced": len(previous_plans) if previous_plans else 0,
-                "chain_history": chain_result["chain_history"]
+                "chain_history": chain_result["chain_history"],
+                "video_resources": educational_videos
             }
         }
 

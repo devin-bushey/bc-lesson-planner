@@ -1,6 +1,7 @@
 import asyncio
 from typing import Dict, List, Tuple
 import openai
+from utils.formatters.video_formatter import VideoFormatter
 from utils.logger import setup_logger
 import json
 
@@ -9,6 +10,7 @@ logger = setup_logger()
 class LessonPlanChain:
     def __init__(self):
         self.conversation_history = []
+        self.video_formatter = VideoFormatter()
         logger.info("Initializing LessonPlanChain")
 
     async def _get_completion(self, prompt: str) -> str:
@@ -25,21 +27,22 @@ class LessonPlanChain:
         logger.info(f"Received response from GPT-4 (length: {len(response.choices[0].message.content)} chars)")
         return response.choices[0].message.content
 
-    async def execute_chain(self, grade_level: str, subject: str, 
-                          curriculum_context: str, previous_context: str, 
-                          templates: Dict) -> Dict:
+    async def execute_chain(self, 
+                          grade_level: str, 
+                          subject: str, 
+                          curriculum_context: str, 
+                          previous_context: str, 
+                          templates: Dict,
+                          video_resources: List[Dict] = None) -> Dict:  # Add video_resources parameter
         """Execute the lesson planning prompt chain with parallel processing"""
-        logger.info(f"Generating lesson plan: Grade {grade_level} {subject}")
+        logger.info(f"Starting chain: Grade {grade_level} {subject}")
         
         try:
-            # Step 1: Curriculum analysis
-            logger.info("Step 1/5: Analyzing curriculum...")
             curriculum_analysis = await self._analyze_curriculum_requirements(
                 grade_level, subject, curriculum_context
             )
             
-            # Steps 2-4 in parallel
-            logger.info("Steps 2-4/5: Generating objectives, activities, and assessments...")
+            # Parallel execution of steps 2-4
             objectives, activities, assessment = await asyncio.gather(
                 self._generate_learning_objectives(grade_level, curriculum_analysis),
                 self._create_activities(curriculum_analysis),
@@ -50,25 +53,28 @@ class LessonPlanChain:
             # Check for exceptions
             for result in [objectives, activities, assessment]:
                 if isinstance(result, Exception):
-                    logger.error(f"Chain step failed: {str(result)}")
+                    logger.error(f"Failed: {str(result)}")
                     raise result
 
-            # Final composition
-            logger.info("Step 5/5: Composing final plan...")
             final_plan = await self._compose_final_plan(
-                grade_level, subject, curriculum_analysis,
-                objectives, activities, assessment,
-                previous_context, templates
+                grade_level=grade_level,
+                subject=subject,
+                curriculum_analysis=curriculum_analysis,
+                objectives=objectives,
+                activities=activities,
+                assessment=assessment,
+                previous_context=previous_context,
+                templates=templates,
+                video_resources=video_resources or []  # Pass video resources with empty list default
             )
             
-            logger.info("✅ Lesson plan completed successfully")
             return {
                 "content": final_plan,
                 "chain_history": self.conversation_history
             }
             
         except Exception as e:
-            logger.error(f"Error generating lesson plan: {str(e)}")
+            logger.error(f"Chain error: {str(e)}")
             raise
 
     async def _analyze_curriculum_requirements(self, grade_level: str, 
@@ -187,8 +193,12 @@ class LessonPlanChain:
                                 activities: str,
                                 assessment: str,
                                 previous_context: str,
-                                templates: Dict) -> str:
-        logger.info(f"Composing final plan for Grade {grade_level} {subject}")
+                                templates: Dict,
+                                video_resources: List[Dict]) -> str:
+        """Compose final lesson plan with video resources"""
+        # Format video section using the formatter
+        video_section = self.video_formatter.format_videos_html(video_resources)
+
         prompt = f"""
         Create a complete lesson plan using these components:
         
@@ -234,6 +244,9 @@ class LessonPlanChain:
         
         Template Reference:
         {templates}
+        
+        Include this video resources section:
+        {video_section}
         """
         
         response = await self._get_completion(prompt)

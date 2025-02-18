@@ -125,3 +125,38 @@
 .content :global(.ProseMirror *) {
   text-align: left;
 }
+
+.content :global(.video-resources) {
+  margin: 1rem 0;
+}
+
+.content :global(.video-resource) {
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  background: #2d3748;
+}
+
+.content :global(.video-link) {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  background: #7f56d9;
+  color: white !important; /* Ensure text is visible */
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  cursor: pointer; /* Add pointer cursor */
+  pointer-events: all; /* Ensure clicks are registered */
+}
+
+.content :global(.video-link:hover) {
+  background: #6941c6;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.content :global(.ProseMirror) a {
+  pointer-events: all; /* Enable click events on all links */
+}

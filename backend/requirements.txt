@@ -11,3 +11,4 @@ lancedb
 tiktoken
 docling
 streamlit
+aiohttp
