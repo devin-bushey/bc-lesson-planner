@@ -1,4 +1,5 @@
-from typing import Dict, List
+import asyncio
+from typing import Dict, List, Tuple
 import openai
 from utils.logger import setup_logger
 import json
@@ -12,65 +13,68 @@ class LessonPlanChain:
 
     async def _get_completion(self, prompt: str) -> str:
         """Helper method for GPT-4 completions"""
-        logger.debug(f"Sending prompt to GPT-4 (length: {len(prompt)} chars)")
+        logger.info(f"Sending prompt to GPT-4 (length: {len(prompt)} chars)")
         response = openai.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a curriculum specialist for BC schools."},
                 *self.conversation_history,
                 {"role": "user", "content": prompt}
             ]
         )
-        logger.debug(f"Received response from GPT-4 (length: {len(response.choices[0].message.content)} chars)")
+        logger.info(f"Received response from GPT-4 (length: {len(response.choices[0].message.content)} chars)")
         return response.choices[0].message.content
 
     async def execute_chain(self, grade_level: str, subject: str, 
                           curriculum_context: str, previous_context: str, 
                           templates: Dict) -> Dict:
-        """Execute the full lesson planning prompt chain"""
-        logger.info(f"Starting lesson plan chain for Grade {grade_level} {subject}")
-        logger.debug(f"Context length: {len(curriculum_context)} chars")
-        logger.debug(f"Previous context length: {len(previous_context)} chars")
+        """Execute the lesson planning prompt chain with parallel processing"""
+        logger.info(f"Generating lesson plan: Grade {grade_level} {subject}")
         
-        logger.info("Step 1: Analyzing curriculum requirements")
-        curriculum_analysis = await self._analyze_curriculum_requirements(
-            grade_level, subject, curriculum_context
-        )
-        
-        logger.info("Step 2: Generating learning objectives")
-        objectives = await self._generate_learning_objectives(
-            grade_level, curriculum_analysis
-        )
-        
-        logger.info("Step 3: Designing learning activities")
-        activities = await self._create_activities(objectives)
-        
-        logger.info("Step 4: Creating assessment strategy")
-        assessment = await self._design_assessment(objectives)
-        
-        logger.info("Step 5: Composing final lesson plan")
-        final_plan = await self._compose_final_plan(
-            grade_level,
-            subject,
-            curriculum_analysis,
-            objectives,
-            activities,
-            assessment,
-            previous_context,
-            templates
-        )
-        
-        logger.info("Completed lesson plan chain")
-        logger.debug(f"Final plan length: {len(final_plan)} chars")
-        return {
-            "content": final_plan,
-            "chain_history": self.conversation_history
-        }
+        try:
+            # Step 1: Curriculum analysis
+            logger.info("Step 1/5: Analyzing curriculum...")
+            curriculum_analysis = await self._analyze_curriculum_requirements(
+                grade_level, subject, curriculum_context
+            )
+            
+            # Steps 2-4 in parallel
+            logger.info("Steps 2-4/5: Generating objectives, activities, and assessments...")
+            objectives, activities, assessment = await asyncio.gather(
+                self._generate_learning_objectives(grade_level, curriculum_analysis),
+                self._create_activities(curriculum_analysis),
+                self._design_assessment(curriculum_analysis),
+                return_exceptions=True
+            )
+            
+            # Check for exceptions
+            for result in [objectives, activities, assessment]:
+                if isinstance(result, Exception):
+                    logger.error(f"Chain step failed: {str(result)}")
+                    raise result
+
+            # Final composition
+            logger.info("Step 5/5: Composing final plan...")
+            final_plan = await self._compose_final_plan(
+                grade_level, subject, curriculum_analysis,
+                objectives, activities, assessment,
+                previous_context, templates
+            )
+            
+            logger.info("✅ Lesson plan completed successfully")
+            return {
+                "content": final_plan,
+                "chain_history": self.conversation_history
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating lesson plan: {str(e)}")
+            raise
 
     async def _analyze_curriculum_requirements(self, grade_level: str, 
                                             subject: str, 
                                             curriculum_context: str) -> str:
-        logger.debug(f"Analyzing curriculum for Grade {grade_level} {subject}")
+        logger.info(f"Analyzing curriculum for Grade {grade_level} {subject}")
         prompt = f"""
         Analyze the BC curriculum requirements for grade {grade_level} {subject}.
         
@@ -85,12 +89,12 @@ class LessonPlanChain:
         """
         response = await self._get_completion(prompt)
         logger.info("Completed curriculum analysis")
-        logger.debug(f"Analysis length: {len(response)} chars")
+        logger.info(f"Analysis length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
     async def _generate_learning_objectives(self, grade_level: str, curriculum_analysis: str) -> str:
-        logger.debug(f"Generating objectives based on curriculum analysis")
+        logger.info(f"Generating objectives based on curriculum analysis")
         prompt = f"""
         Based on this curriculum analysis:
         {curriculum_analysis}
@@ -109,15 +113,17 @@ class LessonPlanChain:
         
         response = await self._get_completion(prompt)
         logger.info("Generated learning objectives")
-        logger.debug(f"Number of objectives generated: {response.count('- ')}")
+        logger.info(f"Number of objectives generated: {response.count('- ')}")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
-    async def _create_activities(self, objectives: str) -> str:
-        logger.debug("Creating learning activities")
+    async def _create_activities(self, curriculum_analysis: str) -> str:
+        logger.info("Creating learning activities")
         prompt = f"""
-        Create engaging learning activities that achieve these objectives:
-        {objectives}
+        Based on this curriculum analysis:
+        {curriculum_analysis}
+        
+        Create engaging learning activities that align with the curriculum.
         
         For each activity include:
         1. Duration and timing
@@ -137,15 +143,17 @@ class LessonPlanChain:
         
         response = await self._get_completion(prompt)
         logger.info("Created learning activities")
-        logger.debug(f"Activities section length: {len(response)} chars")
+        logger.info(f"Activities section length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
-    async def _design_assessment(self, objectives: str) -> str:
-        logger.debug("Designing assessment strategy")
+    async def _design_assessment(self, curriculum_analysis: str) -> str:
+        logger.info("Designing assessment strategy")
         prompt = f"""
-        Design assessment strategies for these objectives:
-        {objectives}
+        Based on this curriculum analysis:
+        {curriculum_analysis}
+        
+        Design assessment strategies that align with the curriculum.
         
         Include:
         1. Formative assessment methods
@@ -163,16 +171,11 @@ class LessonPlanChain:
             - Checklists
             - Self-assessment prompts
             - Peer assessment guidelines
-        
-        4. Feedback strategies
-            - Teacher feedback methods
-            - Peer feedback protocols
-            - Self-reflection prompts
         """
         
         response = await self._get_completion(prompt)
         logger.info("Designed assessment strategy")
-        logger.debug(f"Assessment strategy length: {len(response)} chars")
+        logger.info(f"Assessment strategy length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
@@ -185,7 +188,7 @@ class LessonPlanChain:
                                 assessment: str,
                                 previous_context: str,
                                 templates: Dict) -> str:
-        logger.debug(f"Composing final plan for Grade {grade_level} {subject}")
+        logger.info(f"Composing final plan for Grade {grade_level} {subject}")
         prompt = f"""
         Create a complete lesson plan using these components:
         
@@ -235,7 +238,7 @@ class LessonPlanChain:
         
         response = await self._get_completion(prompt)
         logger.info("Composed final lesson plan")
-        logger.debug(f"Final plan sections: {response.count('<div class=\"section\">')}")
-        logger.debug(f"Final plan HTML length: {len(response)} chars")
+        logger.info(f"Final plan sections: {response.count('<div class=\"section\">')}")
+        logger.info(f"Final plan HTML length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
