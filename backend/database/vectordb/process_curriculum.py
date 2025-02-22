@@ -1,108 +1,71 @@
 import subprocess
-import time
 from typing import List, Dict
 import sys
 
-def run_embedding_command(url: str, doc_type: str, table: str) -> bool:
-    """Run a single embedding command and return success status."""
+def run_embedding_command(url: str, doc_type: str, table: str, chunk_size: int = 1000) -> bool:
+    """Run a single embedding command with chunking support."""
     command = [
-        sys.executable,  # Use the current Python interpreter
+        sys.executable, 
         "embedding.py",
         url,
         "--type", doc_type,
-        "--table", table
+        "--table", table,
+        "--chunk-size", str(chunk_size)
     ]
     
     try:
         print(f"\nProcessing: {url}")
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        # Increased timeout to 20 minutes for large PDFs
+        result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=1200)
         print(result.stdout)
         return True
-    except subprocess.CalledProcessError as e:
-        print(f"Error processing {url}:")
-        print(f"Error output: {e.stderr}")
+    except subprocess.TimeoutExpired:
+        print(f"Processing timed out for {url}. Try reducing chunk size or increasing timeout.")
         return False
     except Exception as e:
         print(f"Unexpected error processing {url}: {str(e)}")
         return False
 
-def get_curriculum_urls() -> List[Dict[str, str]]:
+def get_core_subject_pdfs() -> List[Dict[str, str]]:
     """Return list of URLs and their types to process."""
     return [
         {
-            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/career-education/en_career-education_k-9.pdf",
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/adst/en_adst_k-9_elab.pdf",
             "type": "pdf"
         },
         {
-            "url": "https://curriculum.gov.bc.ca/curriculum/overview",
-            "type": "webpage"
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/arts-education/en_arts-education_k-9_elab.pdf",
+            "type": "pdf"
         },
         {
-            "url": "https://curriculum.gov.bc.ca/competencies",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/communication",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/collaborating",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/thinking",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/thinking/creative-thinking",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/thinking/critical-and-reflective-thinking",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/personal-and-social",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/personal-and-social/personal-awareness-and-responsibility",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/personal-and-social/positive-personal-and-cultural-identity",
-            "type": "webpage"
-        },
-        {
-            "url": "https://curriculum.gov.bc.ca/competencies/personal-and-social/social-awareness-and-responsibility",
-            "type": "webpage"
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/mathematics/en_mathematics_k-9_elab.pdf",
+            "type": "pdf" 
         }
     ]
 
 def main():
     table_name = "bc_curriculum_website"
-    urls = get_curriculum_urls()
+    urls = get_core_subject_pdfs()
     
     total = len(urls)
     successful = 0
     failed = 0
     
-    print(f"Starting to process {total} URLs...")
-    
-    for i, url_info in enumerate(urls, 1):
-        print(f"\nProgress: {i}/{total}")
-        success = run_embedding_command(url_info["url"], url_info["type"], table_name)
-        
+    for url_info in urls:
+        # Reduced chunk size further for very large PDFs
+        chunk_size = 250 if url_info["url"].endswith('.pdf') else 1000
+        success = run_embedding_command(
+            url_info["url"], 
+            url_info["type"], 
+            table_name,
+            chunk_size
+        )
         if success:
             successful += 1
         else:
             failed += 1
-            
-        # Add a small delay between requests to avoid overwhelming the server
-        if i < total:
-            time.sleep(2)
+        
     
-    print("\nProcessing complete!")
     print(f"Successfully processed: {successful}")
     print(f"Failed to process: {failed}")
     print(f"Total URLs: {total}")

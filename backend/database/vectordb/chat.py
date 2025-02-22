@@ -39,15 +39,12 @@ def get_context(query: str, table, num_results: int = 3) -> str:
     for _, row in results.iterrows():
         # Extract metadata
         filename = row["metadata"]["filename"]
-        page_numbers = row["metadata"]["page_numbers"]
         title = row["metadata"]["title"]
 
         # Build source citation
         source_parts = []
         if filename:
             source_parts.append(filename)
-        if page_numbers:
-            source_parts.append(f"p. {', '.join(str(p) for p in page_numbers)}")
 
         source = f"\nSource: {' - '.join(source_parts)}"
         if title:
@@ -80,7 +77,7 @@ def get_chat_response(messages, context: str) -> str:
 
     # Create the streaming response
     stream = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o",
         messages=messages_with_context,
         temperature=0.7,
         stream=True,

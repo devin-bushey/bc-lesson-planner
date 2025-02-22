@@ -1,9 +1,8 @@
 import asyncio
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import openai
 from utils.formatters.video_formatter import VideoFormatter
 from utils.logger import setup_logger
-import json
 
 logger = setup_logger()
 
@@ -15,16 +14,14 @@ class LessonPlanChain:
 
     async def _get_completion(self, prompt: str) -> str:
         """Helper method for GPT-4 completions"""
-        logger.info(f"Sending prompt to GPT-4 (length: {len(prompt)} chars)")
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a curriculum specialist for BC schools."},
-                *self.conversation_history,
+                {"role": "system", "content": "You are a BC curriculum specialist. Format responses concisely."},
+                *self.conversation_history[-2:],  # Only keep last 2 messages for context
                 {"role": "user", "content": prompt}
             ]
         )
-        logger.info(f"Received response from GPT-4 (length: {len(response.choices[0].message.content)} chars)")
         return response.choices[0].message.content
 
     async def execute_chain(self, 
@@ -80,108 +77,65 @@ class LessonPlanChain:
     async def _analyze_curriculum_requirements(self, grade_level: str, 
                                             subject: str, 
                                             curriculum_context: str) -> str:
-        logger.info(f"Analyzing curriculum for Grade {grade_level} {subject}")
-        prompt = f"""
-        Analyze the BC curriculum requirements for grade {grade_level} {subject}.
+        prompt = f"""Grade {grade_level} {subject} curriculum analysis:
+            {curriculum_context}
+
+            List only:
+            1. Core competencies
+            2. Big ideas
+            3. Key concepts
+            4. Prerequisites"""
         
-        Curriculum Context:
-        {curriculum_context}
-        
-        Provide a structured analysis including:
-        1. Core competencies
-        2. Big ideas
-        3. Key concepts
-        4. Prerequisites
-        """
         response = await self._get_completion(prompt)
-        logger.info("Completed curriculum analysis")
-        logger.info(f"Analysis length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
     async def _generate_learning_objectives(self, grade_level: str, curriculum_analysis: str) -> str:
-        logger.info(f"Generating objectives based on curriculum analysis")
-        prompt = f"""
-        Based on this curriculum analysis:
-        {curriculum_analysis}
-        
-        Generate specific, measurable learning objectives that:
-        1. Align with BC curriculum standards
-        2. Are appropriate for grade {grade_level}
-        3. Can be completed in one lesson
-        4. Follow SMART criteria (Specific, Measurable, Achievable, Relevant, Time-bound)
-        
-        Format each objective with:
-        - Clear success criteria
-        - Connection to curriculum competencies
-        - Expected evidence of learning
-        """
+        prompt = f"""Using analysis:
+            {curriculum_analysis}
+
+            Create SMART objectives for grade {grade_level}:
+            - Specific outcomes
+            - Measurable criteria
+            - Curriculum alignment
+            - Evidence of learning"""
         
         response = await self._get_completion(prompt)
-        logger.info("Generated learning objectives")
-        logger.info(f"Number of objectives generated: {response.count('- ')}")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
     async def _create_activities(self, curriculum_analysis: str) -> str:
-        logger.info("Creating learning activities")
-        prompt = f"""
-        Based on this curriculum analysis:
-        {curriculum_analysis}
-        
-        Create engaging learning activities that align with the curriculum.
-        
-        For each activity include:
-        1. Duration and timing
-        2. Required materials and resources
-        3. Step-by-step instructions
-        4. Differentiation strategies for diverse learners
-        5. Teacher prompts and questions
-        6. Student grouping strategies
-        7. Transitions between activities
-        
-        Ensure activities are:
-        - Age-appropriate
-        - Interactive and engaging
-        - Scaffold learning progressively
-        - Include multiple modalities (visual, auditory, kinesthetic)
-        """
+        prompt = f"""Based on:
+            {curriculum_analysis}
+
+            Design activities with:
+            1. Time/materials
+            2. Instructions
+            3. Differentiation
+            4. Teacher prompts
+            5. Grouping
+            6. Transitions
+
+            Make: interactive, age-appropriate, multi-modal"""
         
         response = await self._get_completion(prompt)
-        logger.info("Created learning activities")
-        logger.info(f"Activities section length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
     async def _design_assessment(self, curriculum_analysis: str) -> str:
-        logger.info("Designing assessment strategy")
-        prompt = f"""
-        Based on this curriculum analysis:
-        {curriculum_analysis}
-        
-        Design assessment strategies that align with the curriculum.
-        
-        Include:
-        1. Formative assessment methods
-            - Check for understanding strategies
+        prompt = f"""Using:
+            {curriculum_analysis}
+
+            Create:
+            1. Formative checks
             - Exit tickets
-            - Observation checklists
-        
-        2. Success criteria
-            - Clear indicators of achievement
-            - Learning progressions
-            - Expected outcomes
-        
-        3. Assessment tools
+            - Observations
+            2. Success criteria
+            3. Assessment tools
             - Rubrics
-            - Checklists
-            - Self-assessment prompts
-            - Peer assessment guidelines
-        """
+            - Self/peer review"""
         
         response = await self._get_completion(prompt)
-        logger.info("Designed assessment strategy")
-        logger.info(f"Assessment strategy length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
 
@@ -195,63 +149,39 @@ class LessonPlanChain:
                                 previous_context: str,
                                 templates: Dict,
                                 video_resources: List[Dict]) -> str:
-        """Compose final lesson plan with video resources"""
-        # Format video section using the formatter
         video_section = self.video_formatter.format_videos_html(video_resources)
+        
+        # Extract key points from previous context to reduce tokens
+        prev_context_summary = f"Previous lessons: {previous_context.split('Previous plan:')[0]}"
 
-        prompt = f"""
-        Create a complete lesson plan using these components:
-        
-        Grade Level: {grade_level}
-        Subject: {subject}
-        
-        Curriculum Analysis:
-        {curriculum_analysis}
-        
-        Learning Objectives:
-        {objectives}
-        
-        Learning Activities:
-        {activities}
-        
-        Assessment Strategy:
-        {assessment}
-        
-        Previous Context:
-        {previous_context}
-        
-        Format the response in clean HTML following these rules:
-        - Each section should be wrapped in a <div class="section">
-        - Main sections should use <h2>
-        - Subsections should use <h3>
-        - Lists should use proper <ul> and <li> tags
-        - Time durations should use <span class="time">
-        - Important points should use <strong>
-        - Include clear transitions between activities
-        - Add metadata for tracking and assessment
-        
-        Follow this structure:
-        1. Lesson Overview
-        2. Learning Objectives
-        3. Materials and Resources
-        4. Lesson Flow
-           - Hook/Introduction
-           - Main Activities
-           - Closure
-        5. Assessment and Evaluation
-        6. Extensions and Modifications
-        7. Reflection and Notes
-        
-        Template Reference:
-        {templates}
-        
-        Include this video resources section:
-        {video_section}
-        """
-        
+        prompt = f"""Grade {grade_level} {subject} lesson plan:
+
+            Analysis: {curriculum_analysis}
+            Objectives: {objectives}
+            Activities: {activities}
+            Assessment: {assessment}
+            Context: {prev_context_summary}
+
+            HTML format:
+            <div class="section">
+            <h2>Section Title</h2>
+            <h3>Subsection</h3>
+            <ul><li>Points</li></ul>
+            <span class="time">Duration</span>
+            </div>
+
+            Sections:
+            1. Overview
+            2. Objectives
+            3. Materials
+            4. Lesson Flow
+            5. Assessment
+            6. Extensions
+            7. Reflection
+
+            Resources:
+            {video_section}"""
+
         response = await self._get_completion(prompt)
-        logger.info("Composed final lesson plan")
-        logger.info(f"Final plan sections: {response.count('<div class=\"section\">')}")
-        logger.info(f"Final plan HTML length: {len(response)} chars")
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
