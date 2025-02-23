@@ -7,9 +7,10 @@ import MenuBar from './MenuBar/MenuBar';
 interface EditorProps {
     content: string;
     onUpdate: (content: string) => void;
+    isDisabled?: boolean;
 }
 
-const Editor: React.FC<EditorProps> = ({ content, onUpdate }) => {
+const Editor: React.FC<EditorProps> = ({ content, onUpdate, isDisabled = false }) => {
     const editor = useEditor({
         extensions: defaultExtensions,
         content: content,
@@ -17,6 +18,7 @@ const Editor: React.FC<EditorProps> = ({ content, onUpdate }) => {
             const html = editor.getHTML();
             onUpdate?.(html);
         },
+        editable: !isDisabled,
     }, []);  // Initialize only once
 
     // Update editor content when content prop changes
@@ -29,13 +31,20 @@ const Editor: React.FC<EditorProps> = ({ content, onUpdate }) => {
         }
     }, [editor, content]);
 
+    // Update editor editable state when isDisabled changes
+    useEffect(() => {
+        if (editor) {
+            editor.setEditable(!isDisabled);
+        }
+    }, [editor, isDisabled]);
+
     if (!editor) {
         return null;
     }
 
     return (
-        <div className={styles.editorContainer}>
-            <MenuBar editor={editor} />
+        <div className={`${styles.editorContainer} ${isDisabled ? styles.disabled : ''}`}>
+            <MenuBar editor={editor} isDisabled={isDisabled} />
             <EditorContent editor={editor} className={styles.editorContent} />
         </div>
     );

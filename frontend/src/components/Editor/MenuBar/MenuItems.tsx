@@ -4,9 +4,10 @@ import styles from '../styles/MenuBar.module.css';
 
 interface MenuItemsProps {
     editor: Editor;
+    isDisabled?: boolean;
 }
 
-export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
+export const MenuItems: React.FC<MenuItemsProps> = ({ editor, isDisabled = false }) => (
     <>
         {/* Text Formatting */}
         <div className={styles.menuGroup}>
@@ -14,6 +15,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().toggleBold().run()}
                 className={editor.isActive('bold') ? styles.isActive : ''}
                 title="Bold (Ctrl+B)"
+                disabled={isDisabled}
             >
                 <i className="fas fa-bold" />
             </button>
@@ -21,6 +23,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().toggleItalic().run()}
                 className={editor.isActive('italic') ? styles.isActive : ''}
                 title="Italic (Ctrl+I)"
+                disabled={isDisabled}
             >
                 <i className="fas fa-italic" />
             </button>
@@ -28,6 +31,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().toggleUnderline().run()}
                 className={editor.isActive('underline') ? styles.isActive : ''}
                 title="Underline (Ctrl+U)"
+                disabled={isDisabled}
             >
                 <i className="fas fa-underline" />
             </button>
@@ -39,6 +43,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
                 className={editor.isActive('bulletList') ? styles.isActive : ''}
                 title="Bullet List"
+                disabled={isDisabled}
             >
                 <i className="fas fa-list-ul" />
             </button>
@@ -46,6 +51,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().toggleTaskList().run()}
                 className={editor.isActive('taskList') ? styles.isActive : ''}
                 title="Task List"
+                disabled={isDisabled}
             >
                 <i className="fas fa-tasks" />
             </button>
@@ -57,6 +63,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().setTextAlign('left').run()}
                 className={editor.isActive({ textAlign: 'left' }) ? styles.isActive : ''}
                 title="Align Left"
+                disabled={isDisabled}
             >
                 <i className="fas fa-align-left" />
             </button>
@@ -64,6 +71,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().setTextAlign('center').run()}
                 className={editor.isActive({ textAlign: 'center' }) ? styles.isActive : ''}
                 title="Align Center"
+                disabled={isDisabled}
             >
                 <i className="fas fa-align-center" />
             </button>
@@ -71,6 +79,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().setTextAlign('right').run()}
                 className={editor.isActive({ textAlign: 'right' }) ? styles.isActive : ''}
                 title="Align Right"
+                disabled={isDisabled}
             >
                 <i className="fas fa-align-right" />
             </button>
@@ -81,18 +90,21 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
             <button
                 onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()}
                 title="Insert Table"
+                disabled={isDisabled}
             >
                 <i className="fas fa-table" />
             </button>
             <button
                 onClick={() => editor.chain().focus().addColumnBefore().run()}
                 title="Add Column Before"
+                disabled={isDisabled}
             >
                 <i className="fas fa-plus" />
             </button>
             <button
                 onClick={() => editor.chain().focus().deleteColumn().run()}
                 title="Delete Column"
+                disabled={isDisabled}
             >
                 <i className="fas fa-minus" />
             </button>
@@ -104,6 +116,7 @@ export const MenuItems: React.FC<MenuItemsProps> = ({ editor }) => (
                 onClick={() => editor.chain().focus().toggleHighlight().run()}
                 className={editor.isActive('highlight') ? styles.isActive : ''}
                 title="Highlight"
+                disabled={isDisabled}
             >
                 <i className="fas fa-highlighter" />
             </button>

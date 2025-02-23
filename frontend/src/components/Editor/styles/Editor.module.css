@@ -5,6 +5,15 @@
     background-color: #2d3748;
 }
 
+.editorContainer.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.editorContainer.disabled .editorContent {
+    pointer-events: none;
+}
+
 .editorContent {
     padding: 1rem;
 }

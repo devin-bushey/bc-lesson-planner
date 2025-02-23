@@ -5,16 +5,17 @@ import { MenuItems } from './MenuItems';
 
 interface MenuBarProps {
     editor: Editor;
+    isDisabled?: boolean;
 }
 
-const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
+const MenuBar: React.FC<MenuBarProps> = ({ editor, isDisabled = false }) => {
     if (!editor) {
         return null;
     }
 
     return (
-        <div className={styles.menuBar}>
-            <MenuItems editor={editor} />
+        <div className={`${styles.menuBar} ${isDisabled ? styles.disabled : ''}`}>
+            <MenuItems editor={editor} isDisabled={isDisabled} />
         </div>
     );
 };

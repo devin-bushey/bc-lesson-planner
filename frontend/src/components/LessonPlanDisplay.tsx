@@ -17,9 +17,10 @@ interface LessonPlan {
 interface LessonPlanDisplayProps {
     lessonPlan: LessonPlan | null;
     onContentChange: (content: string) => void;
+    isLoading?: boolean;
 }
 
-const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onContentChange }) => {
+const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onContentChange, isLoading = false }) => {
     // const [editorContent, setEditorContent] = useState<string>('');
 
     // useEffect(() => {
@@ -33,35 +34,54 @@ const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onCon
         onContentChange(content);
     };
 
-    if (!lessonPlan) {
+    if (!lessonPlan && !isLoading) {
         return <div className={styles.container}>No lesson plan generated yet.</div>;
     }
 
     return (
         <div className={styles.containerTextEditor}>
-            <h2 className={styles.header}>
-                Lesson Plan for Grade {lessonPlan.grade_level} - {lessonPlan.subject}
-            </h2>
-            <div className={styles.metadata}>
-                <div className={styles.metadataItem}>
-                    <div className={styles.metadataLabel}>Date</div>
-                    <div>{lessonPlan.date}</div>
+            {isLoading ? (
+                <div className={styles.loadingOverlay}>
+                    <div className={styles.loadingPencil}>
+                        <div className={styles.paper}>
+                            <div className={styles.lines}></div>
+                            <div className={styles.writing}></div>
+                            <div className={styles.writing}></div>
+                            <div className={styles.writing}></div>
+                            <div className={styles.writing}></div>
+                        </div>
+                        <div className={styles.pencil}></div>
+                    </div>
+                    <p>Writing your lesson plan...</p>
                 </div>
-                <div className={styles.metadataItem}>
-                    <div className={styles.metadataLabel}>Generated At</div>
-                    <div>{lessonPlan.metadata.generated_at}</div>
-                </div>
-                <div className={styles.metadataItem}>
-                    <div className={styles.metadataLabel}>Previous Plans Referenced</div>
-                    <div>{lessonPlan.metadata.previous_plans_referenced}</div>
-                </div>
-            </div>
-            <h3 className={styles.header}>Content:</h3>
-            <Editor 
-                key={lessonPlan.content}
-                content={lessonPlan.content || ''}
-                onUpdate={handleEditorUpdate}
-            />
+            ) : (
+                <>
+                    <h2 className={styles.header}>
+                        Lesson Plan for Grade {lessonPlan?.grade_level} - {lessonPlan?.subject}
+                    </h2>
+                    <div className={styles.metadata}>
+                        <div className={styles.metadataItem}>
+                            <div className={styles.metadataLabel}>Date</div>
+                            <div>{lessonPlan?.date}</div>
+                        </div>
+                        <div className={styles.metadataItem}>
+                            <div className={styles.metadataLabel}>Generated At</div>
+                            <div>{lessonPlan?.metadata.generated_at}</div>
+                        </div>
+                        <div className={styles.metadataItem}>
+                            <div className={styles.metadataLabel}>Previous Plans Referenced</div>
+                            <div>{lessonPlan?.metadata.previous_plans_referenced}</div>
+                        </div>
+                    </div>
+                    <h3 className={styles.header}>Content:</h3>
+                    <Editor 
+                        key={lessonPlan?.content}
+                        content={lessonPlan?.content || ''}
+                        onUpdate={handleEditorUpdate}
+                        isDisabled={isLoading}
+                    />
+                </>
+            )}
         </div>
     );
 };

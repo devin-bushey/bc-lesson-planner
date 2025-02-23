@@ -5,9 +5,10 @@ import styles from './LessonPlanForm.module.css';
 interface LessonPlanFormProps {
     onPlanGenerated: (plan: any) => void;
     hasEditorChanges: boolean;
+    onGenerateStart: () => void;
 }
 
-const LessonPlanForm: React.FC<LessonPlanFormProps> = ({ onPlanGenerated, hasEditorChanges }) => {
+const LessonPlanForm: React.FC<LessonPlanFormProps> = ({ onPlanGenerated, hasEditorChanges, onGenerateStart }) => {
     const [gradeLevel, setGradeLevel] = useState('');
     const [subject, setSubject] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +26,8 @@ const LessonPlanForm: React.FC<LessonPlanFormProps> = ({ onPlanGenerated, hasEdi
         }
 
         setIsLoading(true);
+        onGenerateStart();
+        
         try {
             const response = await generateLessonPlan(gradeLevel, subject);
             onPlanGenerated(response);

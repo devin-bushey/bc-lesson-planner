@@ -8,6 +8,11 @@
     flex-wrap: wrap;
 }
 
+.menuBar.disabled {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
 .menuGroup {
     display: flex;
     gap: 0.25rem;
@@ -32,7 +37,12 @@
     min-width: 2rem;
 }
 
-.menuBar button:hover {
+.menuBar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.menuBar button:hover:not(:disabled) {
     background: #2d3748;
 }
 
