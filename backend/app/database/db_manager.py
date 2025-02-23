@@ -91,12 +91,13 @@ class DatabaseManager:
                 "metadata": result[5]
             }
 
-    def save_plan(self, plan: Dict):
+    def save_plan(self, plan: Dict) -> int:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
                 INSERT INTO lesson_plans (date, grade_level, subject, content, metadata)
                 VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
                 """,
                 (
                     plan["date"],
@@ -106,4 +107,6 @@ class DatabaseManager:
                     Json(plan["metadata"])
                 )
             )
+            plan_id = cursor.fetchone()[0]
             self.conn.commit()
+            return plan_id

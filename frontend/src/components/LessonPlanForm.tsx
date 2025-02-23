@@ -19,9 +19,14 @@ const LessonPlanForm: React.FC = () => {
 
         try {
             const plan = await generateLessonPlan(formData.grade, formData.subject);
-            navigate(`/lesson/${plan.id}`);
+            if (plan && plan.id) {
+                navigate(`/lesson/${plan.id}`);
+            } else {
+                throw new Error('Invalid plan data received');
+            }
         } catch (err) {
             setError('Failed to generate lesson plan. Please try again.');
+            console.error('Generation error:', err);
         } finally {
             setIsGenerating(false);
         }

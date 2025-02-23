@@ -95,7 +95,7 @@ class LessonPlannerAgent:
             curriculum_context=curriculum_context,
             previous_context=context_prompt,
             templates=templates,
-            video_resources=educational_videos  # Add video resources
+            video_resources=educational_videos
         )
         
         # Create structured plan
@@ -112,7 +112,8 @@ class LessonPlannerAgent:
             }
         }
 
-        # Save the plan
-        self.db_manager.save_plan(plan)
+        # Save the plan and get its ID
+        plan_id = self.db_manager.save_plan(plan)
+        plan["id"] = plan_id
         
         return plan
