@@ -199,10 +199,22 @@ const LessonPlanDisplay: React.FC = () => {
                                 value={titleInput}
                                 onChange={(e) => setTitleInput(e.target.value)}
                                 onBlur={handleTitleBlur}
-                                className={styles.titleInput}
+                                className={`${styles.titleInput} ${isSaving ? styles.saving : ''}`}
                                 placeholder="Enter lesson title..."
                                 autoFocus
+                                disabled={isSaving}
                             />
+                            {isSaving && (
+                                <div className={styles.loadingSpinner}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M8 1.5V4.5M8 11.5V14.5M3 8H0M16 8H13M13.7 13.7L11.5 11.5M13.7 2.3L11.5 4.5M2.3 13.7L4.5 11.5M2.3 2.3L4.5 4.5" 
+                                            stroke="currentColor" 
+                                            strokeWidth="2" 
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className={styles.titleDisplay}>

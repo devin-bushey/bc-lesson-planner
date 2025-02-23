@@ -42,6 +42,25 @@ const LessonPlanForm: React.FC = () => {
 
     return (
         <div className={styles.container}>
+            {isGenerating && (
+                <div className={styles.overlay}>
+                    <div className={styles.appleContainer}>
+                        <div className={styles.apple}>
+                            <div className={styles.leaf} />
+                            <div className={styles.spots} />
+                            <div className={styles.worm}>
+                                <div className={styles.wormHead}>
+                                    <div className={styles.smile} />
+                                    <div className={styles.cheeks} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className={styles.generatingText}>
+                            Generating your lesson plan...
+                        </div>
+                    </div>
+                </div>
+            )}
             <h1 className={styles.title}>Create New Lesson Plan</h1>
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formGroup}>
@@ -53,6 +72,7 @@ const LessonPlanForm: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         className={styles.select}
+                        disabled={isGenerating}
                     >
                         <option value="">Select Grade</option>
                         <option value="K">Kindergarten</option>
@@ -71,6 +91,7 @@ const LessonPlanForm: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         className={styles.select}
+                        disabled={isGenerating}
                     >
                         <option value="">Select Subject</option>
                         <option value="Mathematics">Mathematics</option>
