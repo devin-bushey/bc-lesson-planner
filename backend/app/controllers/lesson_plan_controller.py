@@ -29,3 +29,12 @@ def init_routes(app):
         if plan is None:
             return jsonify({'error': 'Lesson plan not found'}), 404
         return jsonify(plan)
+
+    @app.route('/lesson-plan/<int:plan_id>', methods=['PUT'])
+    def update_lesson_plan(plan_id):
+        data = request.get_json()
+        planner = LessonPlannerAgent(None, None)
+        updated_plan = planner.db_manager.update_lesson_plan(plan_id, data)
+        if updated_plan is None:
+            return jsonify({'error': 'Failed to update lesson plan'}), 404
+        return jsonify(updated_plan)

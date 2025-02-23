@@ -110,3 +110,49 @@ class DatabaseManager:
             plan_id = cursor.fetchone()[0]
             self.conn.commit()
             return plan_id
+
+    def update_lesson_plan(self, plan_id: int, plan_data: Dict) -> Optional[Dict]:
+        with self.conn.cursor() as cursor:
+            # First check if the plan exists
+            cursor.execute("SELECT id FROM lesson_plans WHERE id = %s", (plan_id,))
+            if cursor.fetchone() is None:
+                return None
+
+            # Build the update query dynamically based on what fields are provided
+            update_fields = []
+            values = []
+            if "content" in plan_data:
+                update_fields.append("content = %s")
+                values.append(Json(plan_data["content"]))
+            if "metadata" in plan_data:
+                update_fields.append("metadata = %s")
+                values.append(Json(plan_data["metadata"]))
+            if "grade_level" in plan_data:
+                update_fields.append("grade_level = %s")
+                values.append(plan_data["grade_level"])
+            if "subject" in plan_data:
+                update_fields.append("subject = %s")
+                values.append(plan_data["subject"])
+            if "date" in plan_data:
+                update_fields.append("date = %s")
+                values.append(plan_data["date"])
+
+            if not update_fields:
+                return self.get_lesson_plan_by_id(plan_id)
+
+            # Add the plan_id to the values list
+            values.append(plan_id)
+
+            # Execute the update
+            cursor.execute(
+                f"""
+                UPDATE lesson_plans
+                SET {", ".join(update_fields)}
+                WHERE id = %s
+                """,
+                tuple(values)
+            )
+            self.conn.commit()
+
+            # Return the updated plan
+            return self.get_lesson_plan_by_id(plan_id)

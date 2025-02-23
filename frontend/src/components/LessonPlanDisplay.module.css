@@ -179,23 +179,6 @@
     font-size: 1.125rem;
 }
 
-.button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background-color: var(--color-primary);
-    color: white;
-    border: none;
-}
-
-.button:hover {
-    background-color: var(--color-primary-hover);
-    transform: translateY(-1px);
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .header {
@@ -231,4 +214,75 @@
     .editorContainer :global(.ProseMirror) {
         padding: 1rem;
     }
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    cursor: pointer;
+}
+
+.modal {
+    background: var(--color-surface);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-border);
+    cursor: default;
+}
+
+.modal h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-text);
+    font-size: 1.25rem;
+}
+
+.modal p {
+    margin: 0 0 1.5rem 0;
+    color: var(--color-text-secondary);
+}
+
+.modalButtons {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.button:hover {
+    background: var(--color-background);
+    border-color: var(--color-primary);
+}
+
+.button.primaryButton {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.button.primaryButton:hover {
+    background-color: var(--color-primary-hover);
+    transform: translateY(-1px);
+    border-color: transparent;
 }
