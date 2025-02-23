@@ -25,9 +25,10 @@ git clone https://github.com/yourusername/bc-lesson-planner.git
 cd bc-lesson-planner
 ```
 
-2. Create `.env` file in the root AND backend directories:
+2. Copy the `.env.example` file to a new file called `.env` in the root AND backend directories:
 ```sh
 cp .env.example .env
+cp .env.example ./backend/.env
 ```
 
 3. Build and start the Docker containers:
