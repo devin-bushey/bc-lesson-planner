@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { LessonPlan } from '../services/lessonPlanService';
 import { useApi } from '../hooks/useApi';
 import styles from './LessonPlanDisplay.module.css';
+import statusStyles from './subcomponents/StatusIndicator.module.css';
 
 interface UnsavedChangesModalProps {
     isOpen: boolean;
@@ -140,6 +141,27 @@ const LessonPlanDisplay: React.FC = () => {
         handleTitleSave(titleInput);
     };
 
+    const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (!lessonPlan || !id) return;
+        
+        setIsSaving(true);
+        try {
+            const updatedPlan = await api.updateLessonPlan(parseInt(id), {
+                ...lessonPlan,
+                metadata: {
+                    ...lessonPlan.metadata,
+                    status: e.target.value
+                }
+            });
+            setLessonPlan(updatedPlan);
+        } catch (err) {
+            setError('Failed to update status. Please try again.');
+            console.error('Save error:', err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     if (loading) {
         return <div className={styles.loading}>Loading lesson plan...</div>;
     }
@@ -177,19 +199,29 @@ const LessonPlanDisplay: React.FC = () => {
                         Back to Plans
                     </button>
                     {isEditingTitle ? (
-                        <input
-                            type="text"
-                            value={titleInput}
-                            onChange={(e) => setTitleInput(e.target.value)}
-                            onBlur={handleTitleBlur}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    handleTitleSave(titleInput);
-                                }
-                            }}
-                            className={styles.titleInput}
-                            autoFocus
-                        />
+                        <div className={styles.titleEdit}>
+                            <input
+                                type="text"
+                                value={titleInput}
+                                onChange={(e) => setTitleInput(e.target.value)}
+                                onBlur={handleTitleBlur}
+                                className={`${styles.titleInput} ${isSaving ? styles.saving : ''}`}
+                                placeholder="Enter lesson title..."
+                                autoFocus
+                                disabled={isSaving}
+                            />
+                            {isSaving && (
+                                <div className={styles.loadingSpinner}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M8 1.5V4.5M8 11.5V14.5M3 8H0M16 8H13M13.7 13.7L11.5 11.5M13.7 2.3L11.5 4.5M2.3 13.7L4.5 11.5M2.3 2.3L4.5 4.5" 
+                                            stroke="currentColor" 
+                                            strokeWidth="2" 
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <h1 
                             className={styles.title}

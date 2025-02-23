@@ -43,33 +43,64 @@ const LessonPlanForm: React.FC = () => {
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Generate Lesson Plan</h1>
+            {isGenerating && (
+                <div className={styles.overlay}>
+                    <div className={styles.appleContainer}>
+                        <div className={styles.apple}>
+                            <div className={styles.leaf} />
+                            <div className={styles.spots} />
+                            <div className={styles.worm}>
+                                <div className={styles.wormHead}>
+                                    <div className={styles.smile} />
+                                    <div className={styles.cheeks} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className={styles.generatingText}>
+                            Generating your lesson plan...
+                        </div>
+                    </div>
+                </div>
+            )}
+            <h1 className={styles.title}>Create New Lesson Plan</h1>
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formGroup}>
                     <label htmlFor="grade" className={styles.label}>Grade Level</label>
-                    <input
-                        type="text"
+                    <select
                         id="grade"
                         name="grade"
                         value={formData.grade}
                         onChange={handleInputChange}
-                        className={styles.input}
-                        placeholder="Enter grade level (e.g., K, 1, 2)"
+                        className={styles.select}
+                        disabled={isGenerating}
                         required
-                    />
+                    >
+                        <option value="">Select Grade</option>
+                        <option value="K">Kindergarten</option>
+                        {[1, 2, 3, 4, 5, 6, 7].map(grade => (
+                            <option key={grade} value={grade}>Grade {grade}</option>
+                        ))}
+                    </select>
                 </div>
                 <div className={styles.formGroup}>
                     <label htmlFor="subject" className={styles.label}>Subject</label>
-                    <input
-                        type="text"
+                    <select
                         id="subject"
                         name="subject"
                         value={formData.subject}
                         onChange={handleInputChange}
-                        className={styles.input}
-                        placeholder="Enter subject (e.g., Math, Science)"
+                        className={styles.select}
+                        disabled={isGenerating}
                         required
-                    />
+                    >
+                        <option value="">Select Subject</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Science">Science</option>
+                        <option value="English Language Arts">English Language Arts</option>
+                        <option value="Social Studies">Social Studies</option>
+                        <option value="Arts Education">Arts Education</option>
+                        <option value="Physical and Health Education">Physical and Health Education</option>
+                    </select>
                 </div>
                 {error && (
                     <div className={styles.error}>

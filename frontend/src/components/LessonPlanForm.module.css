@@ -8,6 +8,7 @@
     background: #f8f9fa;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -70,9 +71,23 @@
     padding-right: 2.5rem;
 }
 
+.select:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
+    border-color: #e5e7eb;
+}
+
 @media (prefers-color-scheme: dark) {
     .select {
         background-image: url("data:image/svg+xml,%3Csvg width='14' height='8' viewBox='0 0 14 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L7 7L13 1' stroke='%23e0e0e0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    }
+
+    .select:disabled {
+        background-color: #1f2937;
+        color: #6b7280;
+        border-color: #374151;
     }
 }
   
@@ -146,6 +161,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    position: relative;
 }
 
 .title {
@@ -153,4 +169,252 @@
     color: var(--color-text);
     margin-bottom: 2rem;
     text-align: center;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+@media (prefers-color-scheme: dark) {
+    .overlay {
+        background: rgba(0, 0, 0, 0.8);
+    }
+}
+
+.appleContainer {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    justify-items: center;
+}
+
+.apple {
+    width: 120px;
+    height: 120px;
+    background: #ff4141;
+    border-radius: 45% 50% 45% 50%;
+    position: relative;
+    margin: 10px;
+    transform: rotate(2deg);
+}
+
+/* Light spots on apple */
+.apple::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    width: 15px;
+    height: 15px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    box-shadow: 
+        25px 10px 0 -5px rgba(255, 255, 255, 0.3),
+        40px 30px 0 -8px rgba(255, 255, 255, 0.3);
+}
+
+/* Stem */
+.apple::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    width: 8px;
+    height: 20px;
+    background: #4a2f24;
+    border-radius: 2px;
+    transform: rotate(-15deg);
+}
+
+/* Leaf */
+.leaf {
+    position: absolute;
+    top: -15px;
+    left: 65%;
+    width: 25px;
+    height: 18px;
+    background: #7cb342;
+    border-radius: 0 50% 0 50%;
+    transform: rotate(-30deg);
+}
+
+/* Dark spots */
+.spots {
+    position: absolute;
+    bottom: 30px;
+    right: 20px;
+    width: 8px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    box-shadow: 
+        -15px 10px 0 -2px rgba(0, 0, 0, 0.1),
+        -5px -10px 0 -3px rgba(0, 0, 0, 0.1),
+        10px 5px 0 -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Worm segments */
+.worm {
+    position: absolute;
+    width: 35px;
+    height: 35px;
+    background: #a4d007;
+    border-radius: 50%;
+    top: 45px;
+    left: -20px;
+    transform-origin: right center;
+    animation: wormPeek 4s ease-in-out infinite;
+}
+
+/* Body segments */
+.worm::before {
+    content: '';
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background: #a4d007;
+    border-radius: 50%;
+    top: 5px;
+    left: 25px;
+}
+
+.worm::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: #a4d007;
+    border-radius: 50%;
+    top: 8px;
+    left: 50px;
+}
+
+/* Worm head */
+.wormHead {
+    position: absolute;
+    width: 35px;
+    height: 35px;
+    background: #a4d007;
+    border-radius: 50%;
+    top: 0;
+    left: 0;
+}
+
+/* Eyes */
+.wormHead::before {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    top: 8px;
+    left: 5px;
+    box-shadow: 
+        15px 0 0 0 white;
+}
+
+/* Pupils */
+.wormHead::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 8px;
+    background: black;
+    border-radius: 50%;
+    top: 10px;
+    left: 7px;
+    box-shadow: 
+        15px 0 0 0 black;
+}
+
+/* Smile */
+.smile {
+    position: absolute;
+    width: 12px;
+    height: 6px;
+    border: 2px solid #333;
+    border-radius: 0 0 12px 12px;
+    border-top: 0;
+    bottom: 8px;
+    left: 12px;
+}
+
+/* Rosy cheeks */
+.cheeks {
+    position: absolute;
+    width: 8px;
+    height: 4px;
+    background: rgba(255, 150, 150, 0.6);
+    border-radius: 50%;
+    top: 18px;
+    left: 4px;
+}
+
+.cheeks::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 4px;
+    background: rgba(255, 150, 150, 0.6);
+    border-radius: 50%;
+    left: 20px;
+}
+
+@keyframes wormPeek {
+    0%, 100% {
+        transform: translateX(0) rotate(-5deg);
+    }
+    25% {
+        transform: translateX(5px) rotate(0deg);
+    }
+    50% {
+        transform: translateX(8px) rotate(5deg);
+    }
+    75% {
+        transform: translateX(3px) rotate(-2deg);
+    }
+}
+
+.generatingText {
+    margin-top: 2rem;
+    font-size: 1.25rem;
+    color: var(--color-text);
+    text-align: center;
+    font-weight: 500;
+    animation: textPulse 3s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Dark mode adjustment for the pulsing text */
+@media (prefers-color-scheme: dark) {
+    .generatingText {
+        color: rgba(255, 255, 255, 0.9);
+    }
+    @keyframes textPulse {
+        0%, 100% {
+            opacity: 0.9;
+        }
+        50% {
+            opacity: 0.6;
+        }
+    }
 }
