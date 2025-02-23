@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from typing import Dict
 from database.db_manager import DatabaseManager
@@ -28,8 +28,8 @@ class LessonPlannerAgent:
     def _create_context_prompt(self, previous_plans):
         context = "Previous lesson plans covered:\n"
         for plan in previous_plans:
-            logger.info(f"Using previous plan {plan.get('date')}, Subject: {plan.get('subject')}")
-            context += f"- Date: {plan.get('date')}, Subject: {plan.get('subject')}, "
+            logger.info(f"Using previous plan from {plan.get('created_at')}, Subject: {plan.get('subject')}")
+            context += f"- Created: {plan.get('created_at')}, Subject: {plan.get('subject')}, "
             context += f"Previous plan: {json.dumps(plan.get('content', {}), indent=2)}\n"
         return context
 
@@ -100,12 +100,10 @@ class LessonPlannerAgent:
         
         # Create structured plan
         plan = {
-            "date": datetime.now().strftime("%Y-%m-%d"),
             "grade_level": self.grade_level,
             "subject": self.subject,
             "content": chain_result["content"],
             "metadata": {
-                "generated_at": datetime.now().isoformat(),
                 "previous_plans_referenced": len(previous_plans) if previous_plans else 0,
                 "chain_history": chain_result["chain_history"],
                 "video_resources": educational_videos

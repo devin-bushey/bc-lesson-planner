@@ -3,11 +3,12 @@ const API_BASE_URL = 'http://localhost:5000';
 export interface LessonPlan {
     id: number;
     title: string;
-    date: string;
     grade_level: string;
     subject: string;
     content: any;
     metadata: any;
+    created_at: string;
+    updated_at: string;
 }
 
 export const getAllLessonPlans = async (): Promise<LessonPlan[]> => {
@@ -42,13 +43,7 @@ export const updateLessonPlan = async (id: number, plan: Partial<LessonPlan>): P
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            ...plan,
-            metadata: {
-                ...plan.metadata,
-                lastUpdated: new Date().toISOString()
-            }
-        }),
+        body: JSON.stringify(plan),
     });
 
     if (!response.ok) {

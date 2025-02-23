@@ -29,10 +29,10 @@ class DatabaseManager:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT date, content, metadata 
+                SELECT created_at, content, metadata 
                 FROM lesson_plans 
                 WHERE grade_level = %s AND subject = %s 
-                ORDER BY date DESC 
+                ORDER BY created_at DESC 
                 LIMIT %s
                 """,
                 (grade_level, subject, limit)
@@ -40,7 +40,7 @@ class DatabaseManager:
             results = cursor.fetchall()
             return [
                 {
-                    "date": result[0],
+                    "created_at": result[0],
                     "content": result[1],
                     "metadata": result[2]
                 }
@@ -51,21 +51,22 @@ class DatabaseManager:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT id, date, grade_level, subject, content, metadata, title
+                SELECT id, created_at, updated_at, grade_level, subject, content, metadata, title
                 FROM lesson_plans
-                ORDER BY date DESC
+                ORDER BY updated_at DESC
                 """
             )
             results = cursor.fetchall()
             return [
                 {
                     "id": result[0],
-                    "date": result[1].strftime("%Y-%m-%d"),
-                    "grade_level": result[2],
-                    "subject": result[3],
-                    "content": result[4],
-                    "metadata": result[5],
-                    "title": result[6]
+                    "created_at": result[1].isoformat(),
+                    "updated_at": result[2].isoformat(),
+                    "grade_level": result[3],
+                    "subject": result[4],
+                    "content": result[5],
+                    "metadata": result[6],
+                    "title": result[7]
                 }
                 for result in results
             ]
@@ -74,7 +75,7 @@ class DatabaseManager:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT id, date, grade_level, subject, content, metadata, title
+                SELECT id, created_at, updated_at, grade_level, subject, content, metadata, title
                 FROM lesson_plans
                 WHERE id = %s
                 """,
@@ -85,24 +86,24 @@ class DatabaseManager:
                 return None
             return {
                 "id": result[0],
-                "date": result[1].strftime("%Y-%m-%d"),
-                "grade_level": result[2],
-                "subject": result[3],
-                "content": result[4],
-                "metadata": result[5],
-                "title": result[6]
+                "created_at": result[1].isoformat(),
+                "updated_at": result[2].isoformat(),
+                "grade_level": result[3],
+                "subject": result[4],
+                "content": result[5],
+                "metadata": result[6],
+                "title": result[7]
             }
 
     def save_plan(self, plan: Dict) -> int:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO lesson_plans (date, grade_level, subject, content, metadata, title)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO lesson_plans (grade_level, subject, content, metadata, title)
+                VALUES (%s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
-                    plan["date"],
                     plan["grade_level"],
                     plan["subject"],
                     Json(plan["content"]),
@@ -139,12 +140,12 @@ class DatabaseManager:
             if "subject" in plan_data:
                 update_fields.append("subject = %s")
                 values.append(plan_data["subject"])
-            if "date" in plan_data:
-                update_fields.append("date = %s")
-                values.append(plan_data["date"])
 
             if not update_fields:
                 return self.get_lesson_plan_by_id(plan_id)
+
+            # Add updated_at timestamp
+            update_fields.append("updated_at = CURRENT_TIMESTAMP")
 
             # Add the plan_id to the values list
             values.append(plan_id)

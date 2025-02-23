@@ -7,9 +7,16 @@ import statusStyles from './subcomponents/StatusIndicator.module.css';
 type SortOption = 'updated' | 'created' | 'subject' | 'grade';
 type SortDirection = 'asc' | 'desc';
 
-const formatDateTime = (date: string) => {
-    const d = new Date(date);
-    return `${d.toLocaleDateString()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+const formatDateTime = (isoDate: string) => {
+    const d = new Date(isoDate);
+    return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
 };
 
 const compareGrades = (a: string, b: string): number => {
@@ -23,11 +30,12 @@ const sortPlans = (plans: LessonPlan[], sortBy: SortOption, direction: SortDirec
         let comparison = 0;
         switch (sortBy) {
             case 'updated':
-                comparison = new Date(a.metadata?.lastUpdated || a.date).getTime() - 
-                           new Date(b.metadata?.lastUpdated || b.date).getTime();
+                comparison = new Date(a.updated_at).getTime() - 
+                           new Date(b.updated_at).getTime();
                 break;
             case 'created':
-                comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                comparison = new Date(a.created_at).getTime() - 
+                           new Date(b.created_at).getTime();
                 break;
             case 'subject':
                 comparison = a.subject.localeCompare(b.subject);
@@ -227,14 +235,14 @@ const LessonPlanList: React.FC = () => {
                                                 <path d="M6 4V2" stroke="currentColor" strokeWidth="1.5"/>
                                                 <path d="M10 4V2" stroke="currentColor" strokeWidth="1.5"/>
                                             </svg>
-                                            <span>Created {formatDateTime(plan.date)}</span>
+                                            <span>Created {formatDateTime(plan.created_at)}</span>
                                         </div>
                                         <div className={styles.date}>
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                                 <path d="M8 4V8L10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="currentColor" strokeWidth="1.5"/>
                                             </svg>
-                                            <span>Updated {formatDateTime(plan.metadata?.lastUpdated || plan.date)}</span>
+                                            <span>Updated {formatDateTime(plan.updated_at)}</span>
                                         </div>
                                     </div>
                                 </div>

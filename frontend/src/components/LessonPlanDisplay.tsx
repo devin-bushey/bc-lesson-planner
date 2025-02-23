@@ -48,8 +48,11 @@ const LessonPlanDisplay: React.FC = () => {
     const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [initialContent, setInitialContent] = useState<string>('');
+    const [currentContent, setCurrentContent] = useState<string>('');
     const [hasEditorChanges, setHasEditorChanges] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    const [isContentSaving, setIsContentSaving] = useState(false);
+    const [isMetadataSaving, setIsMetadataSaving] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [titleInput, setTitleInput] = useState('');
@@ -86,7 +89,10 @@ const LessonPlanDisplay: React.FC = () => {
                     throw new Error('Failed to fetch lesson plan');
                 }
                 const data = await response.json();
+                const content = data.content || '';
                 setLessonPlan(data);
+                setInitialContent(content);
+                setCurrentContent(content);
             } catch (err) {
                 setError('Failed to load lesson plan');
             } finally {
@@ -99,32 +105,40 @@ const LessonPlanDisplay: React.FC = () => {
         }
     }, [id]);
 
+    // Track content changes
+    useEffect(() => {
+        if (!loading) {
+            setHasEditorChanges(currentContent !== initialContent);
+        }
+    }, [currentContent, initialContent, loading]);
+
     const handleContentChange = (content: string) => {
         if (lessonPlan) {
             setLessonPlan({
                 ...lessonPlan,
                 content: content
             });
-            setHasEditorChanges(content !== lessonPlan.content);
+            setCurrentContent(content);
         }
     };
 
     const handleSave = async () => {
-        if (!lessonPlan || !id) return;
+        if (!lessonPlan || !id || !hasEditorChanges) return;
         
-        setIsSaving(true);
+        setIsContentSaving(true);
         try {
             const updatedPlan = await updateLessonPlan(parseInt(id), {
                 ...lessonPlan,
-                content: lessonPlan.content
+                content: currentContent
             });
             setLessonPlan(updatedPlan);
+            setInitialContent(currentContent);
             setHasEditorChanges(false);
         } catch (err) {
             setError('Failed to save changes. Please try again.');
             console.error('Save error:', err);
         } finally {
-            setIsSaving(false);
+            setIsContentSaving(false);
         }
     };
 
@@ -137,7 +151,7 @@ const LessonPlanDisplay: React.FC = () => {
     const handleTitleSave = async (newTitle: string) => {
         if (!lessonPlan || !id) return;
         
-        setIsSaving(true);
+        setIsMetadataSaving(true);
         try {
             const updatedPlan = await updateLessonPlan(parseInt(id), {
                 ...lessonPlan,
@@ -149,7 +163,7 @@ const LessonPlanDisplay: React.FC = () => {
             setError('Failed to save title. Please try again.');
             console.error('Save error:', err);
         } finally {
-            setIsSaving(false);
+            setIsMetadataSaving(false);
         }
     };
 
@@ -160,7 +174,7 @@ const LessonPlanDisplay: React.FC = () => {
     const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         if (!lessonPlan || !id) return;
         
-        setIsSaving(true);
+        setIsMetadataSaving(true);
         try {
             const updatedPlan = await updateLessonPlan(parseInt(id), {
                 ...lessonPlan,
@@ -174,7 +188,7 @@ const LessonPlanDisplay: React.FC = () => {
             setError('Failed to update status. Please try again.');
             console.error('Save error:', err);
         } finally {
-            setIsSaving(false);
+            setIsMetadataSaving(false);
         }
     };
 
@@ -221,12 +235,12 @@ const LessonPlanDisplay: React.FC = () => {
                                 value={titleInput}
                                 onChange={(e) => setTitleInput(e.target.value)}
                                 onBlur={handleTitleBlur}
-                                className={`${styles.titleInput} ${isSaving ? styles.saving : ''}`}
+                                className={`${styles.titleInput} ${isMetadataSaving ? styles.saving : ''}`}
                                 placeholder="Enter lesson title..."
                                 autoFocus
-                                disabled={isSaving}
+                                disabled={isMetadataSaving}
                             />
-                            {isSaving && (
+                            {isMetadataSaving && (
                                 <div className={styles.loadingSpinner}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                         <path d="M8 1.5V4.5M8 11.5V14.5M3 8H0M16 8H13M13.7 13.7L11.5 11.5M13.7 2.3L11.5 4.5M2.3 13.7L4.5 11.5M2.3 2.3L4.5 4.5" 
@@ -240,16 +254,9 @@ const LessonPlanDisplay: React.FC = () => {
                         </div>
                     ) : (
                         <div className={styles.titleDisplay}>
-                            <h1>{lessonPlan?.title || `${lessonPlan?.subject} Lesson`}</h1>
-                            <button 
-                                onClick={handleTitleEdit}
-                                className={styles.editTitleButton}
-                                aria-label="Edit lesson title"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M11.5 2.5L13.5 4.5M12.5 1.5L8 6L7 9L10 8L14.5 3.5C14.5 3.5 12.5 1.5 12.5 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                            </button>
+                            <h1 onClick={handleTitleEdit} className={styles.editableTitle}>
+                                {lessonPlan?.title || `${lessonPlan?.subject} Lesson`}
+                            </h1>
                         </div>
                     )}
                     <div className={styles.subtitle}>
@@ -266,7 +273,28 @@ const LessonPlanDisplay: React.FC = () => {
                             <path d="M6 4V2" stroke="currentColor" strokeWidth="1.5"/>
                             <path d="M10 4V2" stroke="currentColor" strokeWidth="1.5"/>
                         </svg>
-                        Created: {new Date(lessonPlan.date).toLocaleDateString()}
+                        Created: {new Date(lessonPlan.created_at).toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                        })}
+                    </div>
+                    <div className={styles.date}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 4V8L10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
+                        Last Updated: {new Date(lessonPlan.updated_at).toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                        })}
                     </div>
                     <div className={statusStyles.status}>
                         <select
@@ -276,7 +304,7 @@ const LessonPlanDisplay: React.FC = () => {
                                 lessonPlan.metadata?.status === 'Scheduled' ? statusStyles.scheduled :
                                 lessonPlan.metadata?.status === 'Completed' ? statusStyles.completed : ''
                             }`}
-                            disabled={isSaving}
+                            disabled={isMetadataSaving}
                         >
                             <option value="Draft">Draft</option>
                             <option value="Scheduled">Scheduled</option>
@@ -287,17 +315,19 @@ const LessonPlanDisplay: React.FC = () => {
                 <button 
                     className={`${styles.saveButton} ${hasEditorChanges ? styles.hasChanges : ''}`}
                     onClick={handleSave}
-                    disabled={!hasEditorChanges || isSaving}
+                    disabled={!hasEditorChanges || isContentSaving || loading}
                 >
-                    {isSaving ? 'Saving...' : hasEditorChanges ? 'Save Changes' : 'Saved'}
+                    {isContentSaving ? 'Saving...' : hasEditorChanges ? 'Save Changes' : 'Saved'}
                 </button>
             </div>
 
             <div className={styles.editorContainer}>
-                <Editor 
-                    content={lessonPlan.content}
-                    onUpdate={handleContentChange}
-                />
+                <div className={styles.editorContent}>
+                    <Editor 
+                        content={lessonPlan.content}
+                        onUpdate={handleContentChange}
+                    />
+                </div>
             </div>
         </div>
     );

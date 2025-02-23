@@ -6,6 +6,7 @@
     gap: 0.5rem;
 }
 
+/* Define status-specific colors */
 .statusSelect {
     appearance: none;
     padding: 0.5rem 2.5rem 0.5rem 1rem;
