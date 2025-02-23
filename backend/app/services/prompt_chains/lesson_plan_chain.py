@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict, List
 import openai
 from utils.formatters.video_formatter import VideoFormatter
+from utils.formatters.response_formatter import strip_markdown_code_blocks
 from utils.logger import setup_logger
 
 logger = setup_logger()
@@ -184,4 +185,7 @@ class LessonPlanChain:
 
         response = await self._get_completion(prompt)
         self.conversation_history.append({"role": "assistant", "content": response})
-        return response
+        
+        # Clean the response by removing markdown code block markers
+        cleaned_response = strip_markdown_code_blocks(response)
+        return cleaned_response

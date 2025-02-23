@@ -46,6 +46,7 @@ export const defaultExtensions = [
     TableHeader,
     TextAlign.configure({
         types: ['heading', 'paragraph'],
+        defaultAlignment: 'left',
     }),
     Underline,
     Subscript,

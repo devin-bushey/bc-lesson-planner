@@ -63,6 +63,10 @@
   text-align: left;
 }
 
+.content :global(.ProseMirror) > * {
+  text-align: left;
+}
+
 .content :global(.ProseMirror .section) {
   margin-bottom: 2rem;
 }
