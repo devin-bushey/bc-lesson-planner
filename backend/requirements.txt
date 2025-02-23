@@ -4,7 +4,7 @@ ipykernel
 openai
 pydantic
 flask
-flask_cors
+flask-cors
 python-dotenv
 psycopg2-binary
 lancedb
@@ -12,3 +12,6 @@ tiktoken
 docling
 streamlit
 aiohttp
+python-jose[cryptography]
+python-dateutil
+tenacity

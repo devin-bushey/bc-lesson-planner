@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateLessonPlan } from '../services/lessonPlanService';
+import { useApi } from '../hooks/useApi';
 import styles from './LessonPlanForm.module.css';
 
 const LessonPlanForm: React.FC = () => {
     const navigate = useNavigate();
+    const api = useApi();
     const [formData, setFormData] = useState({
         grade: '',
         subject: '',
@@ -18,7 +19,7 @@ const LessonPlanForm: React.FC = () => {
         setError(null);
 
         try {
-            const plan = await generateLessonPlan(formData.grade, formData.subject);
+            const plan = await api.generateLessonPlan(formData.grade, formData.subject);
             if (plan && plan.id) {
                 navigate(`/lesson/${plan.id}`);
             } else {
@@ -64,15 +65,15 @@ const LessonPlanForm: React.FC = () => {
             <h1 className={styles.title}>Create New Lesson Plan</h1>
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formGroup}>
-                    <label htmlFor="grade">Grade Level:</label>
+                    <label htmlFor="grade" className={styles.label}>Grade Level</label>
                     <select
                         id="grade"
                         name="grade"
                         value={formData.grade}
                         onChange={handleInputChange}
-                        required
                         className={styles.select}
                         disabled={isGenerating}
+                        required
                     >
                         <option value="">Select Grade</option>
                         <option value="K">Kindergarten</option>
@@ -81,17 +82,16 @@ const LessonPlanForm: React.FC = () => {
                         ))}
                     </select>
                 </div>
-
                 <div className={styles.formGroup}>
-                    <label htmlFor="subject">Subject:</label>
+                    <label htmlFor="subject" className={styles.label}>Subject</label>
                     <select
                         id="subject"
                         name="subject"
                         value={formData.subject}
                         onChange={handleInputChange}
-                        required
                         className={styles.select}
                         disabled={isGenerating}
+                        required
                     >
                         <option value="">Select Subject</option>
                         <option value="Mathematics">Mathematics</option>
@@ -102,15 +102,17 @@ const LessonPlanForm: React.FC = () => {
                         <option value="Physical and Health Education">Physical and Health Education</option>
                     </select>
                 </div>
-
-                {error && <div className={styles.error}>{error}</div>}
-
+                {error && (
+                    <div className={styles.error}>
+                        {error}
+                    </div>
+                )}
                 <button
                     type="submit"
-                    className={styles.button}
-                    disabled={isGenerating || !formData.grade || !formData.subject}
+                    className={styles.submitButton}
+                    disabled={isGenerating}
                 >
-                    {isGenerating ? 'Generating...' : 'Generate Lesson Plan'}
+                    {isGenerating ? 'Generating...' : 'Generate Plan'}
                 </button>
             </form>
         </div>

@@ -11,44 +11,108 @@ export interface LessonPlan {
     updated_at: string;
 }
 
-export const getAllLessonPlans = async (): Promise<LessonPlan[]> => {
-    const response = await fetch(`${API_BASE_URL}/lesson-plans`);
+export const createApiClient = (getToken: () => Promise<string>) => {
+    const getAuthHeaders = async () => {
+        try {
+            const token = await getToken();
+            console.debug('Got token for API request');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            };
+        } catch (error) {
+            console.error('Error getting auth headers:', error);
+            throw error;
+        }
+    };
 
-    if (!response.ok) {
-        throw new Error('Failed to fetch lesson plans');
-    }
+    return {
+        getAllLessonPlans: async (): Promise<LessonPlan[]> => {
+            try {
+                const headers = await getAuthHeaders();
+                console.debug('Making request to /lesson-plans');
+                const response = await fetch(`${API_BASE_URL}/lesson-plans`, {
+                    headers
+                });
 
-    return response.json();
-};
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Failed to fetch lesson plans:', errorData);
+                    throw new Error(errorData.message || 'Failed to fetch lesson plans');
+                }
 
-export const generateLessonPlan = async (grade: string, subject: string): Promise<LessonPlan> => {
-    const response = await fetch(`${API_BASE_URL}/generate-plan`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+                return response.json();
+            } catch (error) {
+                console.error('Error in getAllLessonPlans:', error);
+                throw error;
+            }
         },
-        body: JSON.stringify({ grade, subject }),
-    });
 
-    if (!response.ok) {
-        throw new Error('Failed to generate lesson plan');
-    }
+        getLessonPlan: async (id: number): Promise<LessonPlan> => {
+            try {
+                const headers = await getAuthHeaders();
+                const response = await fetch(`${API_BASE_URL}/lesson-plan/${id}`, {
+                    headers
+                });
 
-    return response.json();
-};
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Failed to fetch lesson plan');
+                }
 
-export const updateLessonPlan = async (id: number, plan: Partial<LessonPlan>): Promise<LessonPlan> => {
-    const response = await fetch(`${API_BASE_URL}/lesson-plan/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
+                return response.json();
+            } catch (error) {
+                console.error('Error in getLessonPlan:', error);
+                throw error;
+            }
         },
-        body: JSON.stringify(plan),
-    });
 
-    if (!response.ok) {
-        throw new Error('Failed to update lesson plan');
-    }
+        generateLessonPlan: async (grade: string, subject: string): Promise<LessonPlan> => {
+            try {
+                const headers = await getAuthHeaders();
+                const response = await fetch(`${API_BASE_URL}/generate-plan`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ grade, subject }),
+                });
 
-    return response.json();
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Failed to generate lesson plan');
+                }
+
+                return response.json();
+            } catch (error) {
+                console.error('Error in generateLessonPlan:', error);
+                throw error;
+            }
+        },
+
+        updateLessonPlan: async (id: number, plan: Partial<LessonPlan>): Promise<LessonPlan> => {
+            try {
+                const headers = await getAuthHeaders();
+                const response = await fetch(`${API_BASE_URL}/lesson-plan/${id}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({
+                        ...plan,
+                        metadata: {
+                            ...plan.metadata,
+                            lastUpdated: new Date().toISOString()
+                        }
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Failed to update lesson plan');
+                }
+
+                return response.json();
+            } catch (error) {
+                console.error('Error in updateLessonPlan:', error);
+                throw error;
+            }
+        }
+    };
 }; 

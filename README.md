@@ -9,6 +9,7 @@ An AI Agent that helps Teachers in British Columbia generate and improve their l
 - Database: PostgreSQL
 - Containerization: Docker
 - AI: OpenAI GPT-4
+- Authentication: Auth0
 
 ## Prerequisites
 
@@ -16,6 +17,7 @@ An AI Agent that helps Teachers in British Columbia generate and improve their l
 - Node.js (v18+)
 - Python (v3.9+)
 - OpenAI API key
+- Auth0 account and application setup
 
 ## Setup
 
@@ -25,13 +27,23 @@ git clone https://github.com/yourusername/bc-lesson-planner.git
 cd bc-lesson-planner
 ```
 
-2. Copy the `.env.example` file to a new file called `.env` in the root AND backend directories:
+2. Set up Auth0:
+   - Create a new Auth0 application (Regular Web Application)
+   - Set Application Auth to None under Credentials (TODO: Use Client Secret Post)
+   - Configure the following URLs in your Auth0 application settings:
+     - Allowed Callback URLs: `http://localhost:5173`
+     - Allowed Logout URLs: `http://localhost:5173/login`
+     - Allowed Web Origins: `http://localhost:5173`
+   - Note down your Auth0 Domain, Client ID, and Client Secret
+
+3. Copy the `.env.example` file to a new file called `.env` in the root, backend, and frontend directories:
 ```sh
 cp .env.example .env
 cp .env.example ./backend/.env
+cp ./frontend/.env.example ./frontend/.env
 ```
 
-3. Build and start the Docker containers:
+4. Build and start the Docker containers:
 ```sh
 docker compose up -d
 ```
