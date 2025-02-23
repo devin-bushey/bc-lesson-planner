@@ -2,44 +2,59 @@ import subprocess
 from typing import List, Dict
 import sys
 
-def run_embedding_command(url: str, doc_type: str, table: str, chunk_size: int = 1000) -> bool:
-    """Run a single embedding command with chunking support."""
+def run_embedding_command(url: str, name: str, table: str) -> bool:
+    """Run embedding command for a PDF URL."""
     command = [
         sys.executable, 
         "embedding.py",
         url,
-        "--type", doc_type,
+        "--name", name,
         "--table", table,
-        "--chunk-size", str(chunk_size)
     ]
     
     try:
         print(f"\nProcessing: {url}")
-        # Increased timeout to 20 minutes for large PDFs
-        result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=1200)
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
         print(result.stdout)
         return True
-    except subprocess.TimeoutExpired:
-        print(f"Processing timed out for {url}. Try reducing chunk size or increasing timeout.")
+    except subprocess.CalledProcessError as e:
+        print(f"\nError processing PDF:")
+        print(f"Exit code: {e.returncode}")
+        print(f"Output: {e.stdout}")
+        print(f"Error: {e.stderr}")
         return False
     except Exception as e:
-        print(f"Unexpected error processing {url}: {str(e)}")
+        print(f"\nUnexpected error:")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
         return False
 
 def get_core_subject_pdfs() -> List[Dict[str, str]]:
     """Return list of URLs and their types to process."""
     return [
         {
-            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/adst/en_adst_k-9_elab.pdf",
-            "type": "pdf"
-        },
-        {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/arts-education/en_arts-education_k-9_elab.pdf",
-            "type": "pdf"
+            "name": "arts-education"
         },
         {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/mathematics/en_mathematics_k-9_elab.pdf",
-            "type": "pdf" 
+            "name": "mathematics" 
+        },
+        {
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/social-studies/en_social-studies_k-9_elab.pdf",
+            "name": "social-studies"
+        },
+        {
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/science/en_science_k-9_elab.pdf",
+            "name": "science"
+        },
+        {
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/english-language-arts/en_english-language-arts_k-9_elab.pdf",
+            "name": "english-language-arts"
+        },
+        {
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/physical-health-education/en_physical-health-education_k-9_elab.pdf",
+            "name": "physical-health-education"
         }
     ]
 
@@ -50,22 +65,16 @@ def main():
     total = len(urls)
     successful = 0
     failed = 0
+
+    print(f"Processing {total} URLs")
     
-    for url_info in urls:
-        # Reduced chunk size further for very large PDFs
-        chunk_size = 250 if url_info["url"].endswith('.pdf') else 1000
-        success = run_embedding_command(
-            url_info["url"], 
-            url_info["type"], 
-            table_name,
-            chunk_size
-        )
-        if success:
+    for item in urls:
+        if run_embedding_command(item["url"], item["name"], table_name):
             successful += 1
         else:
             failed += 1
-        
-    
+
+    print(f"\nFinal Results:")
     print(f"Successfully processed: {successful}")
     print(f"Failed to process: {failed}")
     print(f"Total URLs: {total}")

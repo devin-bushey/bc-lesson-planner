@@ -23,10 +23,14 @@ table.to_pandas()
 table.count_rows()
 
 
-
 # --------------------------------------------------------------
 # Search the table
 # --------------------------------------------------------------
 
 result = table.search(query="grade 1 art").limit(5)
 result.to_pandas()
+
+first_row = result.to_pandas().iloc[1]
+print(first_row["text"])
+
+

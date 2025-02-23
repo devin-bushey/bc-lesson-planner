@@ -1,224 +1,202 @@
-from typing import List, Dict, Any
+import argparse
+import sys
+import traceback
+from typing import List
+
 import lancedb
 from docling.chunking import HybridChunker
 from docling.document_converter import DocumentConverter
 from dotenv import load_dotenv
 from lancedb.embeddings import get_registry
-from lancedb.pydantic import LanceModel, Vector, pa
+from lancedb.pydantic import LanceModel, Vector
 from openai import OpenAI
 from utils.tokenizer import OpenAITokenizerWrapper
-import argparse
-from utils.sitemap import get_sitemap_urls
 
-# Get the OpenAI embedding function
+load_dotenv()
+
+client = OpenAI()
+
+tokenizer = OpenAITokenizerWrapper()
+MAX_TOKENS = 8191
+
 embedding_func = get_registry().get("openai").create(name="text-embedding-3-large")
 
 class ChunkMetadata(LanceModel):
-    """Metadata schema for document chunks.
-    Fields must be in alphabetical order (Pydantic requirement)."""
+    """Metadata schema for curriculum chunks"""
     filename: str | None
+    grade: str | None    # Grade level (e.g. "Kindergarten", "Grade 3")
     page_numbers: List[int] | None
+    parent_section: str | None  # For hierarchical relationships in elaborations
+    section_type: str | None  # e.g. "Big Ideas", "Curricular Competencies", "Content", "Elaborations"
+    subject: str | None  # Area of Learning (e.g. "ARTS EDUCATION")
     title: str | None
 
-class Chunks(LanceModel):
-    """Schema for document chunks with embeddings."""
+class CurriculumChunks(LanceModel):
+    """Schema for curriculum chunks with embeddings"""
     text: str = embedding_func.SourceField()
     vector: Vector(embedding_func.ndims()) = embedding_func.VectorField()  # type: ignore
     metadata: ChunkMetadata
 
-class DocumentEmbedder:
-    def __init__(self, db_path: str = "data/lancedb"):
-        load_dotenv()
-        self.client = OpenAI()
-        self.tokenizer = OpenAITokenizerWrapper()
-        self.max_tokens = 8191  # text-embedding-3-large's maximum context length
-        self.db_path = db_path
-        self.db = lancedb.connect(db_path)
+def extract_grade_and_subject(text: str) -> tuple[str | None, str | None]:
+    """Extract grade level and subject from text using common patterns."""
+    grade = None
+    subject = None
+    
+    # Look for grade level patterns
+    if "Kindergarten" in text:
+        grade = "Kindergarten"
+    elif "Grade" in text:
+        # Extract grade number (handles "Grade 1" through "Grade 12")
+        import re
+        grade_match = re.search(r"Grade (\d+)", text)
+        if grade_match:
+            grade = f"Grade {grade_match.group(1)}"
+    
+    # Look for subject/area of learning
+    common_subjects = [
+        "ARTS EDUCATION", "SCIENCE", "MATHEMATICS",
+        "ENGLISH LANGUAGE ARTS", "SOCIAL STUDIES",
+        "PHYSICAL AND HEALTH EDUCATION"
+    ]
+    for subj in common_subjects:
+        if subj in text.upper():
+            subject = subj
+            break
+    
+    return grade, subject
 
-    def extract_from_sitemap(self, base_url: str) -> List[Dict]:
-        """
-        Extract content from all pages in a sitemap
-        """
-        converter = DocumentConverter()
-        sitemap_urls = get_sitemap_urls(base_url)
-        conv_results_iter = converter.convert_all(sitemap_urls)
+def identify_section_type(text: str, headings: List[str]) -> str:
+    """Identify the type of curriculum section based on content and headings."""
+    text_upper = text.upper()
+    if "BIG IDEAS" in text_upper:
+        return "Big Ideas"
+    elif "CURRICULAR COMPETENCIES" in text_upper:
+        return "Curricular Competencies"
+    elif "CONTENT" in text_upper:
+        return "Content"
+    elif "ELABORATIONS" in text_upper:
+        return "Elaborations"
+    
+    # Check headings if no clear section type found
+    if headings:
+        heading_upper = headings[0].upper()
+        if "ELABORATIONS" in heading_upper:
+            return "Elaborations"
+    
+    return "General"
+
+def process_pdf(url: str, subject_name: str, table_name: str) -> bool:
+    try:
+        print(f"\nStarting to process PDF from {url}")
         
-        documents = []
-        for result in conv_results_iter:
-            if result.document:
-                documents.append(result.document)
-        return documents
+        # Initialize document converter and process PDF
+        print("Converting PDF...")
+        converter = DocumentConverter()
+        result = converter.convert(url)
+        print("PDF conversion completed")
 
-    def process_document(self, document_url: str, table_name: str = "docling", chunk_size: int = 1000) -> None:
-        """Process a document from URL through conversion, chunking, and embedding."""
+        # Initialize chunker with smaller max tokens to better preserve curriculum structure
+        print("Chunking document...")
+        chunker = HybridChunker(
+            tokenizer=tokenizer,
+            max_tokens=MAX_TOKENS // 2,  # Smaller chunks for more precise retrieval
+            merge_peers=True,
+        )
+
+        # Chunk the document
+        chunks = list(chunker.chunk(dl_doc=result.document))
+        print(f"Document chunked into {len(chunks)} parts")
+
+        if len(chunks) > 0:
+            print("Processing chunks for embedding...")
+        else:
+            print("No chunks to add to database")
+            return False
+        
+        # Connect to LanceDB
+        print("Connecting to LanceDB...")
+        db = lancedb.connect("data/lancedb")
+
+        # Create or get table
+        print(f"Creating/accessing table {table_name}...")
         try:
-            chunks = self._convert_and_chunk_document(document_url, chunk_size)
-            if not chunks:
-                raise ValueError("No chunks were generated from the document")
-            
-            processed_chunks = self._prepare_chunks(chunks, document_url)
-            if not processed_chunks:
-                raise ValueError("No processed chunks were generated")
-            
-            self._create_and_populate_table(processed_chunks, table_name)
-        except Exception as e:
-            print(f"Error in process_document: {str(e)}")
-            print(f"Document URL: {document_url}")
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-            raise
+            table = db.create_table(table_name, schema=CurriculumChunks)
+            print("Created new table")
+        except Exception:
+            table = db.open_table(table_name)
+            print("Using existing table")
 
-    def process_source(self, url: str, source_type: str, table_name: str = "docling", chunk_size: int = 1000) -> Dict:
-        """Process a document source based on its type (pdf, webpage, or website)."""
-        try:
-            if source_type == 'website':
-                documents = self.extract_from_sitemap(url)
-                
-                # Process each document through the embedder
-                for doc in documents:
-                    markdown_content = doc.export_to_markdown()
-                    self.process_document(markdown_content, table_name=table_name, chunk_size=chunk_size)
-                
-                stats = self.get_table_stats(table_name=table_name)
-                return {
-                    "pages": len(documents),
-                    "chunks": stats["row_count"],
-                    "table": table_name
-                }
-            else:
-                # Process single document (PDF or webpage)
-                self.process_document(url, table_name=table_name, chunk_size=chunk_size)
-                stats = self.get_table_stats(table_name=table_name)
-                return {
-                    "pages": 1,
-                    "chunks": stats["row_count"],
-                    "table": table_name
-                }
-        except Exception as e:
-            print(f"Error in process_source: {str(e)}")
-            print(f"URL: {url}, Source Type: {source_type}")
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-            raise
-
-    def _convert_and_chunk_document(self, document_url: str, chunk_size: int = 1000) -> List[Any]:
-        """Convert document and split into chunks."""
-        try:
-            print(f"Starting document conversion for: {document_url}")
-            converter = DocumentConverter()
-            result = converter.convert(document_url)
-            
-            if not result or not result.document:
-                print(f"Document conversion failed or returned empty result for: {document_url}")
-                print(f"Conversion result: {result}")
-                raise ValueError("Document conversion failed")
-            
-            print(f"Document converted successfully. Creating chunker...")
-            chunker = HybridChunker(
-                tokenizer=self.tokenizer,
-                max_tokens=min(chunk_size, self.max_tokens),  # Use the smaller of chunk_size or max_tokens
-                merge_peers=True,
-            )
-            
-            chunks = list(chunker.chunk(dl_doc=result.document))
-            print(f"Generated {len(chunks)} chunks from document")
-            
-            if not chunks:
-                print("Warning: No chunks were generated after successful conversion")
-            
-            return chunks
-        except Exception as e:
-            print(f"Error in _convert_and_chunk_document: {str(e)}")
-            import traceback
-            print(f"Conversion traceback: {traceback.format_exc()}")
-            raise
-
-    def _prepare_chunks(self, chunks: List[Any], url: str) -> List[Dict]:
-        """Transform chunks into the format required for the database."""
-        filename = extract_filename_from_url(url)
+        # Process chunks for embedding with enhanced metadata
+        print("Processing chunks for embedding...")
         processed_chunks = []
+        current_section = None
         
         for chunk in chunks:
-            # Safely get title/heading
-            title = None
-            try:
-                if chunk.meta.headings and len(chunk.meta.headings) > 0:
-                    title = chunk.meta.headings[0]
-            except (AttributeError, TypeError):
-                pass
-
+            # Extract grade and subject if not already known
+            extracted_grade, extracted_subject = extract_grade_and_subject(chunk.text)
+            
+            # Identify section type
+            section_type = identify_section_type(chunk.text, chunk.meta.headings)
+            
+            # Update current section if this is a major section
+            if section_type in ["Big Ideas", "Curricular Competencies", "Content"]:
+                current_section = section_type
+            
             processed_chunks.append({
                 "text": chunk.text,
                 "metadata": {
-                    "filename": filename,
-                    "title": title,
+                    "filename": subject_name,
+                    "grade": extracted_grade,
+                    "page_numbers": [
+                        page_no
+                        for page_no in sorted(
+                            set(
+                                prov.page_no
+                                for item in chunk.meta.doc_items
+                                for prov in item.prov
+                            )
+                        )
+                    ] or None,
+                    "parent_section": current_section if section_type == "Elaborations" else None,
+                    "section_type": section_type,
+                    "subject": extracted_subject or subject_name,
+                    "title": chunk.meta.headings[0] if chunk.meta.headings else None,
                 },
             })
-        
-        return processed_chunks
 
-    def _create_and_populate_table(self, processed_chunks: List[Dict], table_name: str) -> None:
-        """Create a new table or append to existing table with the processed chunks."""
-        if table_name in self.db.table_names():
-            # Table exists, open and append
-            table = self.db.open_table(table_name)
-            table.add(processed_chunks)
-        else:
-            # Table doesn't exist, create new
-            table = self.db.create_table(table_name, schema=Chunks, mode="create")
-            table.add(processed_chunks)
+        # Add chunks to table (this will automatically create embeddings)
+        print(f"Adding {len(processed_chunks)} chunks to database...")
+        table.add(processed_chunks)
+        print("Successfully added chunks to database")
 
-    def get_table_stats(self, table_name: str = "docling") -> Dict:
-        """Get basic statistics about the table."""
-        table = self.db.open_table(table_name)
-        return {
-            "row_count": table.count_rows(),
-            "dataframe": table.to_pandas()
-        }
-
-def extract_filename_from_url(url: str) -> str:
-    """Extract filename from URL, removing file extensions and path components."""
-    # Split the URL by '/' and get the last component
-    filename = url.split('/')[-1]
-    # Split by underscore and get the relevant part
-    if '_' in filename:
-        filename = filename.split('_')[1]
-    # Remove file extension
-    filename = filename.split('.')[0]
-    return filename
+        return True
 
 
-# --------------------------------------------------------------
-# USAGE: Embedding into LanceDB
-#
-# python embedding.py https://example.com --type website --table my_website_docs
-# --------------------------------------------------------------
+    except Exception as e:
+        print(f"\nError details:")
+        print(f"Type: {type(e).__name__}")
+        print(f"Message: {str(e)}")
+        print("\nFull traceback:")
+        traceback.print_exc()
+        return False
 
 def main():
-    """Example usage of the DocumentEmbedder class."""
-    parser = argparse.ArgumentParser(description='Process documents and create embeddings.')
-    parser.add_argument('url', type=str, help='URL of the document to process')
-    parser.add_argument('--type', type=str, choices=['pdf', 'webpage', 'website'],
-                      required=True, help='Type of document to process (pdf, webpage, or website)')
-    parser.add_argument('--table', type=str, default='docling',
-                      help='Name of the table to store embeddings (default: docling)')
-    parser.add_argument('--chunk-size', type=int, default=1000,
-                      help='Size of chunks for processing (default: 1000)')
+    parser = argparse.ArgumentParser(description="Process PDF and create embeddings")
+    parser.add_argument("url", help="URL of the PDF to process")
+    parser.add_argument("--name", help="Subject name", required=True)
+    parser.add_argument("--table", help="Table name in LanceDB", required=True)
     
     args = parser.parse_args()
-    print(f"Processing {args.type} from: {args.url}")
 
-    embedder = DocumentEmbedder()
+    print(f"Processing {args.url} for {args.name} in table {args.table}")
     
-    try:
-        result = embedder.process_source(args.url, args.type, args.table, args.chunk_size)
-        if result["pages"] > 1:
-            print(f"Processed {result['pages']} pages with {result['chunks']} chunks in table '{result['table']}'")
-        else:
-            print(f"Processed {result['chunks']} chunks in table '{result['table']}'")
-    except Exception as e:
-        print(f"Error processing {args.type}: {str(e)}")
+    success = process_pdf(args.url, args.name, args.table)
+    if success:
+        print(f"Successfully processed {args.url}")
+        sys.exit(0)
+    else:
+        print(f"Failed to process {args.url}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
-
