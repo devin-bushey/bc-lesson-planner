@@ -2,7 +2,7 @@ import os
 import psycopg2
 from psycopg2.extras import Json
 import lancedb
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 class DatabaseManager:
     def __init__(self):
@@ -46,6 +46,50 @@ class DatabaseManager:
                 }
                 for result in results
             ]
+
+    def get_all_lesson_plans(self) -> List[Dict]:
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, date, grade_level, subject, content, metadata
+                FROM lesson_plans
+                ORDER BY date DESC
+                """
+            )
+            results = cursor.fetchall()
+            return [
+                {
+                    "id": result[0],
+                    "date": result[1].strftime("%Y-%m-%d"),
+                    "grade_level": result[2],
+                    "subject": result[3],
+                    "content": result[4],
+                    "metadata": result[5]
+                }
+                for result in results
+            ]
+
+    def get_lesson_plan_by_id(self, plan_id: int) -> Optional[Dict]:
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, date, grade_level, subject, content, metadata
+                FROM lesson_plans
+                WHERE id = %s
+                """,
+                (plan_id,)
+            )
+            result = cursor.fetchone()
+            if result is None:
+                return None
+            return {
+                "id": result[0],
+                "date": result[1].strftime("%Y-%m-%d"),
+                "grade_level": result[2],
+                "subject": result[3],
+                "content": result[4],
+                "metadata": result[5]
+            }
 
     def save_plan(self, plan: Dict):
         with self.conn.cursor() as cursor:

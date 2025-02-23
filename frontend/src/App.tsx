@@ -1,44 +1,45 @@
-import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom';
 import LessonPlanForm from './components/LessonPlanForm';
 import LessonPlanDisplay from './components/LessonPlanDisplay';
+import LessonPlanList from './components/LessonPlanList';
+import './App.css';
 
-import './App.css'
-
-const App: React.FC = () => {
-    const [lessonPlan, setLessonPlan] = useState<any>(null);
-    const [hasEditorChanges, setHasEditorChanges] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
-
-    const handlePlanGenerated = (plan: any) => {
-        setLessonPlan(plan);
-        setHasEditorChanges(false);
-        setIsGenerating(false);
-    };
-
-    const handleContentChange = (content: string) => {
-        console.log(content.length);
-        setHasEditorChanges(true);
-    };
-
-    const handleGenerateStart = () => {
-        setIsGenerating(true);
-    };
-
-    return (
-        <div>
-            <h1>Lesson Planner</h1>
-            <LessonPlanForm 
-                onPlanGenerated={handlePlanGenerated}
-                hasEditorChanges={hasEditorChanges}
-                onGenerateStart={handleGenerateStart}
-            />
-            <LessonPlanDisplay
-                lessonPlan={lessonPlan}
-                onContentChange={handleContentChange}
-                isLoading={isGenerating}
-            />
-        </div>
-    );
-};
+function App() {
+  return (
+    <Router>
+      <div className="app">
+        <nav className="nav">
+          <div className="nav-left">
+            <Link to="/" className="nav-brand">BC Lesson Planner</Link>
+            <div className="nav-links">
+              <NavLink 
+                to="/" 
+                className={({ isActive }) => 
+                  `nav-link ${isActive ? 'active' : ''}`
+                }
+                end
+              >
+                Create Plan
+              </NavLink>
+              <NavLink 
+                to="/plans" 
+                className={({ isActive }) => 
+                  `nav-link ${isActive ? 'active' : ''}`
+                }
+              >
+                View Plans
+              </NavLink>
+            </div>
+          </div>
+        </nav>
+        <Routes>
+          <Route path="/" element={<LessonPlanForm />} />
+          <Route path="/plans" element={<LessonPlanList />} />
+          <Route path="/lesson/:id" element={<LessonPlanDisplay />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
 
 export default App;

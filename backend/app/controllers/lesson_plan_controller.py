@@ -15,3 +15,17 @@ def init_routes(app):
         plan = loop.run_until_complete(planner.generate_daily_plan())
 
         return jsonify(plan)
+
+    @app.route('/lesson-plans', methods=['GET'])
+    def get_lesson_plans():
+        planner = LessonPlannerAgent(None, None)
+        plans = planner.db_manager.get_all_lesson_plans()
+        return jsonify(plans)
+
+    @app.route('/lesson-plan/<int:plan_id>', methods=['GET'])
+    def get_lesson_plan(plan_id):
+        planner = LessonPlannerAgent(None, None)
+        plan = planner.db_manager.get_lesson_plan_by_id(plan_id)
+        if plan is None:
+            return jsonify({'error': 'Lesson plan not found'}), 404
+        return jsonify(plan)

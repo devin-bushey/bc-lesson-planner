@@ -19,7 +19,7 @@ const Editor: React.FC<EditorProps> = ({ content, onUpdate, isDisabled = false }
             onUpdate?.(html);
         },
         editable: !isDisabled,
-    }, []);  // Initialize only once
+    });
 
     // Update editor content when content prop changes
     useEffect(() => {
@@ -44,8 +44,12 @@ const Editor: React.FC<EditorProps> = ({ content, onUpdate, isDisabled = false }
 
     return (
         <div className={`${styles.editorContainer} ${isDisabled ? styles.disabled : ''}`}>
-            <MenuBar editor={editor} isDisabled={isDisabled} />
-            <EditorContent editor={editor} className={styles.editorContent} />
+            <div className={styles.menuBar}>
+                <MenuBar editor={editor} isDisabled={isDisabled} />
+            </div>
+            <div className={styles.editorContent}>
+                <EditorContent editor={editor} />
+            </div>
         </div>
     );
 };

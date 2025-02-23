@@ -1,106 +1,93 @@
 import React, { useState } from 'react';
-import { generateLessonPlan } from '../services/lessonPlannerService';
+import { useNavigate } from 'react-router-dom';
+import { generateLessonPlan } from '../services/lessonPlanService';
 import styles from './LessonPlanForm.module.css';
 
-interface LessonPlanFormProps {
-    onPlanGenerated: (plan: any) => void;
-    hasEditorChanges: boolean;
-    onGenerateStart: () => void;
-}
+const LessonPlanForm: React.FC = () => {
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        grade: '',
+        subject: '',
+    });
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-const GRADE_LEVELS = [
-    { value: 'K', label: 'Kindergarten' },
-    { value: '1', label: 'Grade 1' },
-    { value: '2', label: 'Grade 2' },
-    { value: '3', label: 'Grade 3' },
-    { value: '4', label: 'Grade 4' },
-    { value: '5', label: 'Grade 5' },
-];
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsGenerating(true);
+        setError(null);
 
-const SUBJECTS = [
-    { value: 'ARTS EDUCATION', label: 'Arts Education' },
-    { value: 'ENGLISH LANGUAGE ARTS', label: 'English Language Arts' },
-    { value: 'MATHEMATICS', label: 'Mathematics' },
-    { value: 'PHYSICAL AND HEALTH EDUCATION', label: 'Physical and Health Education' },
-    { value: 'SCIENCE', label: 'Science' },
-    { value: 'SOCIAL STUDIES', label: 'Social Studies' },
-];
-
-const LessonPlanForm: React.FC<LessonPlanFormProps> = ({ onPlanGenerated, hasEditorChanges, onGenerateStart }) => {
-    const [gradeLevel, setGradeLevel] = useState('');
-    const [subject, setSubject] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-
-        if (hasEditorChanges) {
-            const confirmGenerate = window.confirm(
-                'You have unsaved changes in the editor. Generating a new lesson plan will replace the current content. Do you want to continue?'
-            );
-            if (!confirmGenerate) {
-                return;
-            }
-        }
-
-        setIsLoading(true);
-        onGenerateStart();
-        
         try {
-            const response = await generateLessonPlan(gradeLevel, subject);
-            onPlanGenerated(response);
-            // Clear form after successful generation
-            setGradeLevel('');
-            setSubject('');
-        } catch (error) {
-            console.error('Error generating lesson plan:', error);
+            const plan = await generateLessonPlan(formData.grade, formData.subject);
+            navigate(`/lesson/${plan.id}`);
+        } catch (err) {
+            setError('Failed to generate lesson plan. Please try again.');
         } finally {
-            setIsLoading(false);
+            setIsGenerating(false);
         }
     };
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
     return (
-        <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="gradeLevel">Grade Level:</label>
-                <select
-                    className={styles.select}
-                    id="gradeLevel"
-                    value={gradeLevel}
-                    onChange={(e) => setGradeLevel(e.target.value)}
-                    required
-                    disabled={isLoading}
+        <div className={styles.container}>
+            <h1 className={styles.title}>Create New Lesson Plan</h1>
+            <form onSubmit={handleSubmit} className={styles.form}>
+                <div className={styles.formGroup}>
+                    <label htmlFor="grade">Grade Level:</label>
+                    <select
+                        id="grade"
+                        name="grade"
+                        value={formData.grade}
+                        onChange={handleInputChange}
+                        required
+                        className={styles.select}
+                    >
+                        <option value="">Select Grade</option>
+                        <option value="K">Kindergarten</option>
+                        {[1, 2, 3, 4, 5, 6, 7].map(grade => (
+                            <option key={grade} value={grade}>Grade {grade}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                    <label htmlFor="subject">Subject:</label>
+                    <select
+                        id="subject"
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        required
+                        className={styles.select}
+                    >
+                        <option value="">Select Subject</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Science">Science</option>
+                        <option value="English Language Arts">English Language Arts</option>
+                        <option value="Social Studies">Social Studies</option>
+                        <option value="Arts Education">Arts Education</option>
+                        <option value="Physical and Health Education">Physical and Health Education</option>
+                    </select>
+                </div>
+
+                {error && <div className={styles.error}>{error}</div>}
+
+                <button
+                    type="submit"
+                    className={styles.button}
+                    disabled={isGenerating || !formData.grade || !formData.subject}
                 >
-                    <option value="">Select a grade level</option>
-                    {GRADE_LEVELS.map(grade => (
-                        <option key={grade.value} value={grade.value}>
-                            {grade.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="subject">Subject:</label>
-                <select
-                    className={styles.select}
-                    id="subject"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    required
-                    disabled={isLoading}
-                >
-                    <option value="">Select a subject</option>
-                    {SUBJECTS.map(subj => (
-                        <option key={subj.value} value={subj.value}>
-                            {subj.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <button className={styles.button} type="submit" disabled={isLoading}>
-                {isLoading ? <span className={styles.loading} /> : 'Generate Lesson Plan'}
-            </button>
-        </form>
+                    {isGenerating ? 'Generating...' : 'Generate Lesson Plan'}
+                </button>
+            </form>
+        </div>
     );
 };
 
