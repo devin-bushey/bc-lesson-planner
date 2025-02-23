@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS lesson_templates (
 
 CREATE TABLE IF NOT EXISTS lesson_plans (
     id SERIAL PRIMARY KEY,
+    title VARCHAR(255),
     date DATE NOT NULL,
     grade_level VARCHAR(50) NOT NULL,
     subject VARCHAR(50) NOT NULL,
@@ -17,10 +18,22 @@ CREATE TABLE IF NOT EXISTS lesson_plans (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    auth0_id VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255),
+    picture VARCHAR(1024),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_lesson_templates_data ON lesson_templates USING GIN (data);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_grade_subject ON lesson_plans(grade_level, subject);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_date ON lesson_plans(date DESC);
+CREATE INDEX IF NOT EXISTS idx_users_auth0_id ON users(auth0_id);
 
 -- Function to update timestamp
 CREATE OR REPLACE FUNCTION update_timestamp()

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LessonPlan, getAllLessonPlans } from '../services/lessonPlanService';
+import { LessonPlan } from '../services/lessonPlanService';
+import { useApi } from '../hooks/useApi';
 import styles from './LessonPlanList.module.css';
 
 interface StatusColors {
@@ -78,6 +79,7 @@ const sortPlans = (plans: LessonPlan[], sortBy: SortOption, direction: SortDirec
 
 const LessonPlanList: React.FC = () => {
     const navigate = useNavigate();
+    const api = useApi();
     const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
     const [filteredPlans, setFilteredPlans] = useState<LessonPlan[]>([]);
     const [loading, setLoading] = useState(true);
@@ -89,7 +91,7 @@ const LessonPlanList: React.FC = () => {
     useEffect(() => {
         const fetchLessonPlans = async () => {
             try {
-                const plans = await getAllLessonPlans();
+                const plans = await api.getAllLessonPlans();
                 const sortedPlans = sortPlans(plans, sortBy, sortDirection);
                 setLessonPlans(sortedPlans);
                 setFilteredPlans(sortedPlans);
@@ -101,7 +103,7 @@ const LessonPlanList: React.FC = () => {
         };
 
         fetchLessonPlans();
-    }, []);
+    }, [api]);
 
     useEffect(() => {
         const filtered = lessonPlans.filter(plan => 

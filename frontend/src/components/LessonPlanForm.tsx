@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateLessonPlan } from '../services/lessonPlanService';
+import { useApi } from '../hooks/useApi';
 import styles from './LessonPlanForm.module.css';
 
 const LessonPlanForm: React.FC = () => {
     const navigate = useNavigate();
+    const api = useApi();
     const [formData, setFormData] = useState({
         grade: '',
         subject: '',
@@ -18,7 +19,7 @@ const LessonPlanForm: React.FC = () => {
         setError(null);
 
         try {
-            const plan = await generateLessonPlan(formData.grade, formData.subject);
+            const plan = await api.generateLessonPlan(formData.grade, formData.subject);
             if (plan && plan.id) {
                 navigate(`/lesson/${plan.id}`);
             } else {
@@ -42,54 +43,45 @@ const LessonPlanForm: React.FC = () => {
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Create New Lesson Plan</h1>
+            <h1 className={styles.title}>Generate Lesson Plan</h1>
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formGroup}>
-                    <label htmlFor="grade">Grade Level:</label>
-                    <select
+                    <label htmlFor="grade" className={styles.label}>Grade Level</label>
+                    <input
+                        type="text"
                         id="grade"
                         name="grade"
                         value={formData.grade}
                         onChange={handleInputChange}
+                        className={styles.input}
+                        placeholder="Enter grade level (e.g., K, 1, 2)"
                         required
-                        className={styles.select}
-                    >
-                        <option value="">Select Grade</option>
-                        <option value="K">Kindergarten</option>
-                        {[1, 2, 3, 4, 5, 6, 7].map(grade => (
-                            <option key={grade} value={grade}>Grade {grade}</option>
-                        ))}
-                    </select>
+                    />
                 </div>
-
                 <div className={styles.formGroup}>
-                    <label htmlFor="subject">Subject:</label>
-                    <select
+                    <label htmlFor="subject" className={styles.label}>Subject</label>
+                    <input
+                        type="text"
                         id="subject"
                         name="subject"
                         value={formData.subject}
                         onChange={handleInputChange}
+                        className={styles.input}
+                        placeholder="Enter subject (e.g., Math, Science)"
                         required
-                        className={styles.select}
-                    >
-                        <option value="">Select Subject</option>
-                        <option value="Mathematics">Mathematics</option>
-                        <option value="Science">Science</option>
-                        <option value="English Language Arts">English Language Arts</option>
-                        <option value="Social Studies">Social Studies</option>
-                        <option value="Arts Education">Arts Education</option>
-                        <option value="Physical and Health Education">Physical and Health Education</option>
-                    </select>
+                    />
                 </div>
-
-                {error && <div className={styles.error}>{error}</div>}
-
+                {error && (
+                    <div className={styles.error}>
+                        {error}
+                    </div>
+                )}
                 <button
                     type="submit"
-                    className={styles.button}
-                    disabled={isGenerating || !formData.grade || !formData.subject}
+                    className={styles.submitButton}
+                    disabled={isGenerating}
                 >
-                    {isGenerating ? 'Generating...' : 'Generate Lesson Plan'}
+                    {isGenerating ? 'Generating...' : 'Generate Plan'}
                 </button>
             </form>
         </div>

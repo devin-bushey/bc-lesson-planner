@@ -1,40 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LessonPlan, updateLessonPlan } from '../services/lessonPlanService';
-import Editor from './Editor/Editor';
+import { LessonPlan } from '../services/lessonPlanService';
+import { useApi } from '../hooks/useApi';
 import styles from './LessonPlanDisplay.module.css';
 
-const UnsavedChangesModal: React.FC<{
+interface UnsavedChangesModalProps {
     isOpen: boolean;
-    onCancel: () => void;
     onConfirm: () => void;
-}> = ({ isOpen, onCancel, onConfirm }) => {
+    onCancel: () => void;
+}
+
+const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ isOpen, onConfirm, onCancel }) => {
     if (!isOpen) return null;
 
     return (
-        <div 
-            className={styles.modalOverlay} 
-            onClick={onCancel}
-        >
-            <div 
-                className={styles.modal} 
-                onClick={e => e.stopPropagation()}
-            >
+        <div className={styles.modalOverlay}>
+            <div className={styles.modal}>
+                <h2>Unsaved Changes</h2>
                 <p>You have unsaved changes. Are you sure you want to leave?</p>
                 <div className={styles.modalButtons}>
-                    <button 
-                        className={`${styles.button} ${styles.primaryButton}`}
-                        onClick={onCancel}
-                        autoFocus
-                    >
-                        Stay
-                    </button>
-                    <button 
-                        className={styles.button}
-                        onClick={onConfirm}
-                    >
-                        Leave
-                    </button>
+                    <button onClick={onCancel}>Stay</button>
+                    <button onClick={onConfirm}>Leave</button>
                 </div>
             </div>
         </div>
@@ -44,6 +30,7 @@ const UnsavedChangesModal: React.FC<{
 const LessonPlanDisplay: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const api = useApi();
     const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -79,13 +66,12 @@ const LessonPlanDisplay: React.FC = () => {
 
     useEffect(() => {
         const fetchLessonPlan = async () => {
+            if (!id) return;
+            
             try {
-                const response = await fetch(`http://localhost:5000/lesson-plan/${id}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch lesson plan');
-                }
-                const data = await response.json();
+                const data = await api.getLessonPlan(parseInt(id));
                 setLessonPlan(data);
+                setTitleInput(data.title || `${data.subject} Lesson`);
             } catch (err) {
                 setError('Failed to load lesson plan');
             } finally {
@@ -93,10 +79,8 @@ const LessonPlanDisplay: React.FC = () => {
             }
         };
 
-        if (id) {
-            fetchLessonPlan();
-        }
-    }, [id]);
+        fetchLessonPlan();
+    }, [id, api]);
 
     const handleContentChange = (content: string) => {
         if (lessonPlan) {
@@ -113,7 +97,7 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsSaving(true);
         try {
-            const updatedPlan = await updateLessonPlan(parseInt(id), {
+            const updatedPlan = await api.updateLessonPlan(parseInt(id), {
                 ...lessonPlan,
                 content: lessonPlan.content
             });
@@ -138,7 +122,7 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsSaving(true);
         try {
-            const updatedPlan = await updateLessonPlan(parseInt(id), {
+            const updatedPlan = await api.updateLessonPlan(parseInt(id), {
                 ...lessonPlan,
                 title: newTitle
             });
@@ -193,67 +177,58 @@ const LessonPlanDisplay: React.FC = () => {
                         Back to Plans
                     </button>
                     {isEditingTitle ? (
-                        <div className={styles.titleEdit}>
-                            <input
-                                type="text"
-                                value={titleInput}
-                                onChange={(e) => setTitleInput(e.target.value)}
-                                onBlur={handleTitleBlur}
-                                className={styles.titleInput}
-                                placeholder="Enter lesson title..."
-                                autoFocus
-                            />
-                        </div>
+                        <input
+                            type="text"
+                            value={titleInput}
+                            onChange={(e) => setTitleInput(e.target.value)}
+                            onBlur={handleTitleBlur}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleTitleSave(titleInput);
+                                }
+                            }}
+                            className={styles.titleInput}
+                            autoFocus
+                        />
                     ) : (
-                        <div className={styles.titleDisplay}>
-                            <h1>{lessonPlan?.title || `${lessonPlan?.subject} Lesson`}</h1>
-                            <button 
-                                onClick={handleTitleEdit}
-                                className={styles.editTitleButton}
-                                aria-label="Edit lesson title"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M11.5 2.5L13.5 4.5M12.5 1.5L8 6L7 9L10 8L14.5 3.5C14.5 3.5 12.5 1.5 12.5 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                            </button>
-                        </div>
+                        <h1 
+                            className={styles.title}
+                            onClick={handleTitleEdit}
+                        >
+                            {lessonPlan.title || `${lessonPlan.subject} Lesson`}
+                        </h1>
                     )}
-                    <div className={styles.subtitle}>
-                        <span>{lessonPlan?.subject}</span>
-                        <span>•</span>
-                        <span>Grade {lessonPlan?.grade_level}</span>
-                    </div>
                 </div>
-                <div className={styles.metadata}>
-                    <div className={styles.date}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                            <path d="M12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" strokeWidth="1.5"/>
-                            <path d="M2 6H14" stroke="currentColor" strokeWidth="1.5"/>
-                            <path d="M6 4V2" stroke="currentColor" strokeWidth="1.5"/>
-                            <path d="M10 4V2" stroke="currentColor" strokeWidth="1.5"/>
-                        </svg>
-                        Created: {new Date(lessonPlan.date).toLocaleDateString()}
-                    </div>
-                    <div className={styles.status}>
-                        <span className={styles.statusDot} />
-                        <span className={styles.statusText}>
-                            {lessonPlan.metadata?.status || 'In Progress'}
-                        </span>
-                    </div>
+                <div className={styles.headerRight}>
+                    <button
+                        className={`${styles.saveButton} ${hasEditorChanges ? styles.hasChanges : ''}`}
+                        onClick={handleSave}
+                        disabled={!hasEditorChanges || isSaving}
+                    >
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
-                <button 
-                    className={`${styles.saveButton} ${hasEditorChanges ? styles.hasChanges : ''}`}
-                    onClick={handleSave}
-                    disabled={!hasEditorChanges || isSaving}
-                >
-                    {isSaving ? 'Saving...' : hasEditorChanges ? 'Save Changes' : 'Saved'}
-                </button>
             </div>
-
-            <div className={styles.editorContainer}>
-                <Editor 
-                    content={lessonPlan.content}
-                    onUpdate={handleContentChange}
+            <div className={styles.metadata}>
+                <div className={styles.metadataItem}>
+                    <span className={styles.label}>Grade:</span>
+                    <span>{lessonPlan.grade_level}</span>
+                </div>
+                <div className={styles.metadataItem}>
+                    <span className={styles.label}>Subject:</span>
+                    <span>{lessonPlan.subject}</span>
+                </div>
+                <div className={styles.metadataItem}>
+                    <span className={styles.label}>Created:</span>
+                    <span>{new Date(lessonPlan.date).toLocaleDateString()}</span>
+                </div>
+            </div>
+            <div className={styles.content}>
+                <textarea
+                    value={lessonPlan.content}
+                    onChange={(e) => handleContentChange(e.target.value)}
+                    className={styles.editor}
+                    placeholder="Enter lesson plan content..."
                 />
             </div>
         </div>
