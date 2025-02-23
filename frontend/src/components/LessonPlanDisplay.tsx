@@ -4,6 +4,7 @@ import { LessonPlan } from '../services/lessonPlanService';
 import { useApi } from '../hooks/useApi';
 import styles from './LessonPlanDisplay.module.css';
 import statusStyles from './subcomponents/StatusIndicator.module.css';
+import Editor from './Editor/Editor';
 
 interface UnsavedChangesModalProps {
     isOpen: boolean;
@@ -256,12 +257,13 @@ const LessonPlanDisplay: React.FC = () => {
                 </div>
             </div>
             <div className={styles.content}>
-                <textarea
-                    value={lessonPlan.content}
-                    onChange={(e) => handleContentChange(e.target.value)}
-                    className={styles.editor}
-                    placeholder="Enter lesson plan content..."
-                />
+                <div className={styles.editorContainer}>
+                    <Editor
+                        content={lessonPlan.content}
+                        onUpdate={handleContentChange}
+                        isDisabled={isSaving}
+                    />
+                </div>
             </div>
         </div>
     );

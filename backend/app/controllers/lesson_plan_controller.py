@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Auth0 configuration
-AUTH0_DOMAIN = environ.get('AUTH0_DOMAIN', 'dev-ktdpysnjqvygt76s.us.auth0.com')
-AUTH0_AUDIENCE = environ.get('AUTH0_AUDIENCE', 'https://dev-ktdpysnjqvygt76s.us.auth0.com/api/v2/')
+AUTH0_DOMAIN = environ.get('AUTH0_DOMAIN')
+AUTH0_AUDIENCE = environ.get('AUTH0_AUDIENCE')
 ALGORITHMS = ["RS256"]
 
 def get_token_auth_header():
