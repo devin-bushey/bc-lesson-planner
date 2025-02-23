@@ -2,6 +2,7 @@ const API_BASE_URL = 'http://localhost:5000';
 
 export interface LessonPlan {
     id: number;
+    title: string;
     date: string;
     grade_level: string;
     subject: string;

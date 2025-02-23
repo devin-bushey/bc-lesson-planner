@@ -43,23 +43,6 @@ const getStatusStyles = (status: string): StatusColors => {
     }
 };
 
-const capitalizeTitle = (title: string): string => {
-    // Words that should not be capitalized (unless they're the first word)
-    const minorWords = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'with']);
-
-    return title
-        .toLowerCase()
-        .split(' ')
-        .map((word, index) => {
-            // Always capitalize the first word or if it's not a minor word
-            if (index === 0 || !minorWords.has(word)) {
-                return word.charAt(0).toUpperCase() + word.slice(1);
-            }
-            return word;
-        })
-        .join(' ');
-};
-
 const formatDateTime = (date: string) => {
     const d = new Date(date);
     return `${d.toLocaleDateString()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
@@ -76,11 +59,11 @@ const sortPlans = (plans: LessonPlan[], sortBy: SortOption, direction: SortDirec
         let comparison = 0;
         switch (sortBy) {
             case 'updated':
-                comparison = new Date(b.metadata?.lastUpdated || b.date).getTime() - 
-                           new Date(a.metadata?.lastUpdated || a.date).getTime();
+                comparison = new Date(a.metadata?.lastUpdated || a.date).getTime() - 
+                           new Date(b.metadata?.lastUpdated || b.date).getTime();
                 break;
             case 'created':
-                comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+                comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
                 break;
             case 'subject':
                 comparison = a.subject.localeCompare(b.subject);
@@ -89,7 +72,7 @@ const sortPlans = (plans: LessonPlan[], sortBy: SortOption, direction: SortDirec
                 comparison = compareGrades(a.grade_level, b.grade_level);
                 break;
         }
-        return direction === 'desc' ? comparison : -comparison;
+        return direction === 'desc' ? -comparison : comparison;
     });
 };
 
@@ -122,6 +105,7 @@ const LessonPlanList: React.FC = () => {
 
     useEffect(() => {
         const filtered = lessonPlans.filter(plan => 
+            plan.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             plan.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
             plan.grade_level.toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -179,7 +163,7 @@ const LessonPlanList: React.FC = () => {
                 <div className={styles.filters}>
                     <input
                         type="text"
-                        placeholder="Search by subject or grade..."
+                        placeholder="Search by title, subject, or grade..."
                         value={searchTerm}
                         onChange={handleSearch}
                         className={styles.searchInput}
@@ -209,7 +193,7 @@ const LessonPlanList: React.FC = () => {
                                     strokeWidth="1.5" 
                                     strokeLinecap="round" 
                                     strokeLinejoin="round"
-                                    transform={sortDirection === 'desc' ? 'rotate(180 8 8)' : ''}
+                                    transform={sortDirection === 'asc' ? 'rotate(180 8 8)' : ''}
                                 />
                             </svg>
                         </button>
@@ -235,7 +219,6 @@ const LessonPlanList: React.FC = () => {
                         {filteredPlans.map((plan) => {
                             const status = plan.metadata?.status || 'In Progress';
                             const statusStyles = getStatusStyles(status);
-                            const normalizedSubject = capitalizeTitle(plan.subject);
                             
                             return (
                                 <div 
@@ -250,12 +233,16 @@ const LessonPlanList: React.FC = () => {
                                             navigate(`/lesson/${plan.id}`);
                                         }
                                     }}
-                                    aria-label={`View ${normalizedSubject} lesson plan for ${plan.grade_level}`}
+                                    aria-label={`View ${plan.subject} lesson plan for ${plan.grade_level}`}
                                 >
                                     <div className={styles.cardHeader}>
                                         <div className={styles.titleGroup}>
-                                            <h2>{normalizedSubject}</h2>
-                                            <span className={styles.subtitle}>Grade {plan.grade_level}</span>
+                                            <h2>{plan.title || `${plan.subject} Lesson`}</h2>
+                                            <div className={styles.subtitle}>
+                                                <span>{plan.subject}</span>
+                                                <span>•</span>
+                                                <span>Grade {plan.grade_level}</span>
+                                            </div>
                                         </div>
                                         <div 
                                             className={styles.status}

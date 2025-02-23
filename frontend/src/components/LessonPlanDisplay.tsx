@@ -50,6 +50,8 @@ const LessonPlanDisplay: React.FC = () => {
     const [hasEditorChanges, setHasEditorChanges] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [titleInput, setTitleInput] = useState('');
 
     // Store the navigation action to perform after confirmation
     const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
@@ -125,6 +127,35 @@ const LessonPlanDisplay: React.FC = () => {
         }
     };
 
+    const handleTitleEdit = () => {
+        if (!lessonPlan) return;
+        setTitleInput(lessonPlan.title || `${lessonPlan.subject} Lesson`);
+        setIsEditingTitle(true);
+    };
+
+    const handleTitleSave = async (newTitle: string) => {
+        if (!lessonPlan || !id) return;
+        
+        setIsSaving(true);
+        try {
+            const updatedPlan = await updateLessonPlan(parseInt(id), {
+                ...lessonPlan,
+                title: newTitle
+            });
+            setLessonPlan(updatedPlan);
+            setIsEditingTitle(false);
+        } catch (err) {
+            setError('Failed to save title. Please try again.');
+            console.error('Save error:', err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleTitleBlur = () => {
+        handleTitleSave(titleInput);
+    };
+
     if (loading) {
         return <div className={styles.loading}>Loading lesson plan...</div>;
     }
@@ -161,8 +192,37 @@ const LessonPlanDisplay: React.FC = () => {
                         </svg>
                         Back to Plans
                     </button>
-                    <h1>{lessonPlan.subject}</h1>
-                    <span className={styles.grade}>{lessonPlan.grade_level}</span>
+                    {isEditingTitle ? (
+                        <div className={styles.titleEdit}>
+                            <input
+                                type="text"
+                                value={titleInput}
+                                onChange={(e) => setTitleInput(e.target.value)}
+                                onBlur={handleTitleBlur}
+                                className={styles.titleInput}
+                                placeholder="Enter lesson title..."
+                                autoFocus
+                            />
+                        </div>
+                    ) : (
+                        <div className={styles.titleDisplay}>
+                            <h1>{lessonPlan?.title || `${lessonPlan?.subject} Lesson`}</h1>
+                            <button 
+                                onClick={handleTitleEdit}
+                                className={styles.editTitleButton}
+                                aria-label="Edit lesson title"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M11.5 2.5L13.5 4.5M12.5 1.5L8 6L7 9L10 8L14.5 3.5C14.5 3.5 12.5 1.5 12.5 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    )}
+                    <div className={styles.subtitle}>
+                        <span>{lessonPlan?.subject}</span>
+                        <span>•</span>
+                        <span>Grade {lessonPlan?.grade_level}</span>
+                    </div>
                 </div>
                 <div className={styles.metadata}>
                     <div className={styles.date}>

@@ -51,7 +51,7 @@ class DatabaseManager:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT id, date, grade_level, subject, content, metadata
+                SELECT id, date, grade_level, subject, content, metadata, title
                 FROM lesson_plans
                 ORDER BY date DESC
                 """
@@ -64,7 +64,8 @@ class DatabaseManager:
                     "grade_level": result[2],
                     "subject": result[3],
                     "content": result[4],
-                    "metadata": result[5]
+                    "metadata": result[5],
+                    "title": result[6]
                 }
                 for result in results
             ]
@@ -73,7 +74,7 @@ class DatabaseManager:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT id, date, grade_level, subject, content, metadata
+                SELECT id, date, grade_level, subject, content, metadata, title
                 FROM lesson_plans
                 WHERE id = %s
                 """,
@@ -88,15 +89,16 @@ class DatabaseManager:
                 "grade_level": result[2],
                 "subject": result[3],
                 "content": result[4],
-                "metadata": result[5]
+                "metadata": result[5],
+                "title": result[6]
             }
 
     def save_plan(self, plan: Dict) -> int:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO lesson_plans (date, grade_level, subject, content, metadata)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO lesson_plans (date, grade_level, subject, content, metadata, title)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -104,7 +106,8 @@ class DatabaseManager:
                     plan["grade_level"],
                     plan["subject"],
                     Json(plan["content"]),
-                    Json(plan["metadata"])
+                    Json(plan["metadata"]),
+                    plan.get("title", f"{plan['subject']} Lesson")
                 )
             )
             plan_id = cursor.fetchone()[0]
@@ -121,6 +124,9 @@ class DatabaseManager:
             # Build the update query dynamically based on what fields are provided
             update_fields = []
             values = []
+            if "title" in plan_data:
+                update_fields.append("title = %s")
+                values.append(plan_data["title"])
             if "content" in plan_data:
                 update_fields.append("content = %s")
                 values.append(Json(plan_data["content"]))
