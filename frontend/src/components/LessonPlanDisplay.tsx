@@ -35,7 +35,7 @@ const LessonPlanDisplay: React.FC<LessonPlanDisplayProps> = ({ lessonPlan, onCon
     };
 
     if (!lessonPlan && !isLoading) {
-        return <div className={styles.container}>No lesson plan generated yet.</div>;
+        return <div className={styles.container}></div>;
     }
 
     return (
