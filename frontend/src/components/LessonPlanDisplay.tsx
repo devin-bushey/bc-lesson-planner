@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { LessonPlan, updateLessonPlan } from '../services/lessonPlanService';
 import Editor from './Editor/Editor';
 import styles from './LessonPlanDisplay.module.css';
+import statusStyles from './subcomponents/StatusIndicator.module.css';
 
 const UnsavedChangesModal: React.FC<{
     isOpen: boolean;
-    onCancel: () => void;
+    onCancel: () => void; 
     onConfirm: () => void;
 }> = ({ isOpen, onCancel, onConfirm }) => {
     if (!isOpen) return null;
@@ -156,6 +157,27 @@ const LessonPlanDisplay: React.FC = () => {
         handleTitleSave(titleInput);
     };
 
+    const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (!lessonPlan || !id) return;
+        
+        setIsSaving(true);
+        try {
+            const updatedPlan = await updateLessonPlan(parseInt(id), {
+                ...lessonPlan,
+                metadata: {
+                    ...lessonPlan.metadata,
+                    status: e.target.value
+                }
+            });
+            setLessonPlan(updatedPlan);
+        } catch (err) {
+            setError('Failed to update status. Please try again.');
+            console.error('Save error:', err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     if (loading) {
         return <div className={styles.loading}>Loading lesson plan...</div>;
     }
@@ -246,11 +268,20 @@ const LessonPlanDisplay: React.FC = () => {
                         </svg>
                         Created: {new Date(lessonPlan.date).toLocaleDateString()}
                     </div>
-                    <div className={styles.status}>
-                        <span className={styles.statusDot} />
-                        <span className={styles.statusText}>
-                            {lessonPlan.metadata?.status || 'In Progress'}
-                        </span>
+                    <div className={statusStyles.status}>
+                        <select
+                            value={lessonPlan.metadata?.status || 'Draft'}
+                            onChange={handleStatusChange}
+                            className={`${statusStyles.statusSelect} ${
+                                lessonPlan.metadata?.status === 'Scheduled' ? statusStyles.scheduled :
+                                lessonPlan.metadata?.status === 'Completed' ? statusStyles.completed : ''
+                            }`}
+                            disabled={isSaving}
+                        >
+                            <option value="Draft">Draft</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                        </select>
                     </div>
                 </div>
                 <button 

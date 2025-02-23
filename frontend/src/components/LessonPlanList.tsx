@@ -2,46 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LessonPlan, getAllLessonPlans } from '../services/lessonPlanService';
 import styles from './LessonPlanList.module.css';
-
-interface StatusColors {
-    dot: string;
-    text: string;
-    background: string;
-}
+import statusStyles from './subcomponents/StatusIndicator.module.css';
 
 type SortOption = 'updated' | 'created' | 'subject' | 'grade';
 type SortDirection = 'asc' | 'desc';
-
-const getStatusStyles = (status: string): StatusColors => {
-    const defaultStatus = {
-        dot: 'var(--color-primary)',
-        text: 'var(--color-primary)',
-        background: 'var(--color-primary-light)'
-    };
-
-    switch (status.toLowerCase()) {
-        case 'completed':
-            return {
-                dot: 'var(--color-success)',
-                text: 'var(--color-success)',
-                background: 'var(--color-success-light)'
-            };
-        case 'in progress':
-            return {
-                dot: 'var(--color-warning)',
-                text: 'var(--color-warning)',
-                background: 'var(--color-warning-light)'
-            };
-        case 'draft':
-            return {
-                dot: 'var(--color-text-secondary)',
-                text: 'var(--color-text-secondary)',
-                background: 'var(--color-primary-light)'
-            };
-        default:
-            return defaultStatus;
-    }
-};
 
 const formatDateTime = (date: string) => {
     const d = new Date(date);
@@ -218,7 +182,6 @@ const LessonPlanList: React.FC = () => {
                     <div className={styles.grid} role="list">
                         {filteredPlans.map((plan) => {
                             const status = plan.metadata?.status || 'In Progress';
-                            const statusStyles = getStatusStyles(status);
                             
                             return (
                                 <div 
@@ -240,22 +203,18 @@ const LessonPlanList: React.FC = () => {
                                             <h2>{plan.title || `${plan.subject} Lesson`}</h2>
                                             <div className={styles.subtitle}>
                                                 <span>{plan.subject}</span>
-                                                <span>•</span>
+                                                <span> • </span>
                                                 <span>Grade {plan.grade_level}</span>
                                             </div>
                                         </div>
-                                        <div 
-                                            className={styles.status}
-                                            style={{ backgroundColor: statusStyles.background }}
+                                        <div
+                                            className={`${statusStyles.statusDisplay} ${
+                                                status === 'Scheduled' ? statusStyles.scheduled :
+                                                status === 'Completed' ? statusStyles.completed : ''
+                                            }`}
                                         >
-                                            <span 
-                                                className={styles.statusDot}
-                                                style={{ backgroundColor: statusStyles.dot }}
-                                            />
-                                            <span 
-                                                className={styles.statusText}
-                                                style={{ color: statusStyles.text }}
-                                            >
+                                            <span className={statusStyles.statusDot} />
+                                            <span className={statusStyles.statusText}>
                                                 {status}
                                             </span>
                                         </div>
