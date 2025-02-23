@@ -28,9 +28,9 @@ class LessonPlannerAgent:
     def _create_context_prompt(self, previous_plans):
         context = "Previous lesson plans covered:\n"
         for plan in previous_plans:
-            logger.info(f"Using previous plan from {plan.get('created_at')}, Subject: {plan.get('subject')}")
-            context += f"- Created: {plan.get('created_at')}, Subject: {plan.get('subject')}, "
-            context += f"Previous plan: {json.dumps(plan.get('content', {}), indent=2)}\n"
+            logger.info(f"Using previous plan from {plan['created_at']}, Subject: {plan['subject']}")
+            context += f"- Created: {plan['created_at']}, Subject: {plan['subject']}, "
+            context += f"Previous plan: {json.dumps(plan['content'], indent=2)}\n"
         return context
 
     async def _get_curriculum_context(self, query: str, num_results: int = 5) -> str:
@@ -79,8 +79,8 @@ class LessonPlannerAgent:
         curriculum_query = f"curriculum objectives for grade {self.grade_level} {self.subject}"
         curriculum_context = await self._get_curriculum_context(curriculum_query)
 
-        # Get lesson plan templates
-        templates = self.lesson_templates.get("templates", {})
+        # Get lesson plan templates - ensure it's a dictionary
+        templates = {"templates": self.lesson_templates} if isinstance(self.lesson_templates, list) else self.lesson_templates
         
         # Get educational videos for the lesson
         educational_videos = await self.youtube_api.search_videos(

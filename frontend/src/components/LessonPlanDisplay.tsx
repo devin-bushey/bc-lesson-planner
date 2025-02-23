@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LessonPlan, updateLessonPlan } from '../services/lessonPlanService';
+import { LessonPlan, createApiClient } from '../services/lessonPlanService';
+import { useAuth0 } from '@auth0/auth0-react';
 import Editor from './Editor/Editor';
 import styles from './LessonPlanDisplay.module.css';
 import statusStyles from './subcomponents/StatusIndicator.module.css';
@@ -45,6 +46,8 @@ const UnsavedChangesModal: React.FC<{
 const LessonPlanDisplay: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { getAccessTokenSilently } = useAuth0();
+    const apiClient = createApiClient(getAccessTokenSilently);
     const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -84,11 +87,7 @@ const LessonPlanDisplay: React.FC = () => {
     useEffect(() => {
         const fetchLessonPlan = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/lesson-plan/${id}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch lesson plan');
-                }
-                const data = await response.json();
+                const data = await apiClient.getLessonPlan(Number(id));
                 const content = data.content || '';
                 setLessonPlan(data);
                 setInitialContent(content);
@@ -103,7 +102,7 @@ const LessonPlanDisplay: React.FC = () => {
         if (id) {
             fetchLessonPlan();
         }
-    }, [id]);
+    }, [id, apiClient]);
 
     // Track content changes
     useEffect(() => {
@@ -127,13 +126,20 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsContentSaving(true);
         try {
-            const updatedPlan = await updateLessonPlan(parseInt(id), {
+            await apiClient.updateLessonPlan(Number(id), {
+                content: currentContent,
+                metadata: {
+                    ...lessonPlan.metadata,
+                    lastSaved: new Date().toISOString()
+                }
+            });
+            setLessonPlan({
                 ...lessonPlan,
                 content: currentContent
             });
-            setLessonPlan(updatedPlan);
             setInitialContent(currentContent);
             setHasEditorChanges(false);
+            setShowUnsavedModal(false);
         } catch (err) {
             setError('Failed to save changes. Please try again.');
             console.error('Save error:', err);
@@ -153,7 +159,7 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsMetadataSaving(true);
         try {
-            const updatedPlan = await updateLessonPlan(parseInt(id), {
+            const updatedPlan = await apiClient.updateLessonPlan(Number(id), {
                 ...lessonPlan,
                 title: newTitle
             });
@@ -176,7 +182,7 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsMetadataSaving(true);
         try {
-            const updatedPlan = await updateLessonPlan(parseInt(id), {
+            const updatedPlan = await apiClient.updateLessonPlan(Number(id), {
                 ...lessonPlan,
                 metadata: {
                     ...lessonPlan.metadata,
