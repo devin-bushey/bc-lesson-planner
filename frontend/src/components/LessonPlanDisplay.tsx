@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LessonPlan, createApiClient } from '../services/lessonPlanService';
-import { useAuth0 } from '@auth0/auth0-react';
+import { LessonPlan } from '../services/lessonPlanService';
+import { useApi } from '../hooks/useApi';
 import Editor from './Editor/Editor';
 import styles from './LessonPlanDisplay.module.css';
 import statusStyles from './subcomponents/StatusIndicator.module.css';
@@ -46,8 +46,7 @@ const UnsavedChangesModal: React.FC<{
 const LessonPlanDisplay: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { getAccessTokenSilently } = useAuth0();
-    const apiClient = createApiClient(getAccessTokenSilently);
+    const api = useApi();
     const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -87,7 +86,7 @@ const LessonPlanDisplay: React.FC = () => {
     useEffect(() => {
         const fetchLessonPlan = async () => {
             try {
-                const data = await apiClient.getLessonPlan(Number(id));
+                const data = await api.getLessonPlan(Number(id));
                 const content = data.content || '';
                 setLessonPlan(data);
                 setInitialContent(content);
@@ -102,7 +101,7 @@ const LessonPlanDisplay: React.FC = () => {
         if (id) {
             fetchLessonPlan();
         }
-    }, [id, apiClient]);
+    }, [id, api]);
 
     // Track content changes
     useEffect(() => {
@@ -126,7 +125,7 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsContentSaving(true);
         try {
-            await apiClient.updateLessonPlan(Number(id), {
+            await api.updateLessonPlan(Number(id), {
                 content: currentContent,
                 metadata: {
                     ...lessonPlan.metadata,
@@ -159,7 +158,7 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsMetadataSaving(true);
         try {
-            const updatedPlan = await apiClient.updateLessonPlan(Number(id), {
+            const updatedPlan = await api.updateLessonPlan(Number(id), {
                 ...lessonPlan,
                 title: newTitle
             });
@@ -182,7 +181,7 @@ const LessonPlanDisplay: React.FC = () => {
         
         setIsMetadataSaving(true);
         try {
-            const updatedPlan = await apiClient.updateLessonPlan(Number(id), {
+            const updatedPlan = await api.updateLessonPlan(Number(id), {
                 ...lessonPlan,
                 metadata: {
                     ...lessonPlan.metadata,
@@ -249,88 +248,103 @@ const LessonPlanDisplay: React.FC = () => {
                             {isMetadataSaving && (
                                 <div className={styles.loadingSpinner}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                        <path d="M8 1.5V4.5M8 11.5V14.5M3 8H0M16 8H13M13.7 13.7L11.5 11.5M13.7 2.3L11.5 4.5M2.3 13.7L4.5 11.5M2.3 2.3L4.5 4.5" 
-                                            stroke="currentColor" 
-                                            strokeWidth="2" 
-                                            strokeLinecap="round"
-                                        />
+                                        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="32">
+                                            <animateTransform
+                                                attributeName="transform"
+                                                type="rotate"
+                                                from="0 8 8"
+                                                to="360 8 8"
+                                                dur="1s"
+                                                repeatCount="indefinite"
+                                            />
+                                        </circle>
                                     </svg>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <div className={styles.titleDisplay}>
-                            <h1 onClick={handleTitleEdit} className={styles.editableTitle}>
-                                {lessonPlan?.title || `${lessonPlan?.subject} Lesson`}
-                            </h1>
+                        <div 
+                            className={styles.titleDisplay}
+                            onClick={handleTitleEdit}
+                        >
+                            <h1>{lessonPlan.title || `${lessonPlan.subject} Lesson`}</h1>
                         </div>
                     )}
-                    <div className={styles.subtitle}>
-                        <span>{lessonPlan?.subject}</span>
-                        <span>•</span>
-                        <span>Grade {lessonPlan?.grade_level}</span>
-                    </div>
                 </div>
-                <div className={styles.metadata}>
-                    <div className={styles.date}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                            <path d="M12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" strokeWidth="1.5"/>
-                            <path d="M2 6H14" stroke="currentColor" strokeWidth="1.5"/>
-                            <path d="M6 4V2" stroke="currentColor" strokeWidth="1.5"/>
-                            <path d="M10 4V2" stroke="currentColor" strokeWidth="1.5"/>
-                        </svg>
-                        Created: {new Date(lessonPlan.created_at).toLocaleString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                        })}
-                    </div>
-                    <div className={styles.date}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                            <path d="M8 4V8L10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="currentColor" strokeWidth="1.5"/>
-                        </svg>
-                        Last Updated: {new Date(lessonPlan.updated_at).toLocaleString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                        })}
-                    </div>
-                    <div className={statusStyles.status}>
-                        <select
-                            value={lessonPlan.metadata?.status || 'Draft'}
-                            onChange={handleStatusChange}
-                            className={`${statusStyles.statusSelect} ${
-                                lessonPlan.metadata?.status === 'Scheduled' ? statusStyles.scheduled :
-                                lessonPlan.metadata?.status === 'Completed' ? statusStyles.completed : ''
-                            }`}
-                            disabled={isMetadataSaving}
-                        >
-                            <option value="Draft">Draft</option>
-                            <option value="Scheduled">Scheduled</option>
-                            <option value="Completed">Completed</option>
-                        </select>
-                    </div>
+                <div className={styles.headerRight}>
+                    <select
+                        value={lessonPlan.metadata?.status || 'draft'}
+                        onChange={handleStatusChange}
+                        className={`${statusStyles.statusSelect} ${isMetadataSaving ? styles.saving : ''}`}
+                        disabled={isMetadataSaving}
+                    >
+                        <option value="draft">Draft</option>
+                        <option value="review">Review</option>
+                        <option value="final">Final</option>
+                    </select>
+                    <button 
+                        className={`${styles.saveButton} ${hasEditorChanges ? styles.hasChanges : ''}`}
+                        onClick={handleSave}
+                        disabled={!hasEditorChanges || isContentSaving}
+                    >
+                        {isContentSaving ? (
+                            <>
+                                <svg className={styles.loadingSpinner} width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="32">
+                                        <animateTransform
+                                            attributeName="transform"
+                                            type="rotate"
+                                            from="0 8 8"
+                                            to="360 8 8"
+                                            dur="1s"
+                                            repeatCount="indefinite"
+                                        />
+                                    </circle>
+                                </svg>
+                                Saving...
+                            </>
+                        ) : hasEditorChanges ? (
+                            'Save Changes'
+                        ) : (
+                            'Saved'
+                        )}
+                    </button>
                 </div>
-                <button 
-                    className={`${styles.saveButton} ${hasEditorChanges ? styles.hasChanges : ''}`}
-                    onClick={handleSave}
-                    disabled={!hasEditorChanges || isContentSaving || loading}
-                >
-                    {isContentSaving ? 'Saving...' : hasEditorChanges ? 'Save Changes' : 'Saved'}
-                </button>
             </div>
-
-            <div className={styles.editorContainer}>
-                <div className={styles.editorContent}>
+            <div className={styles.metadata}>
+                <div className={styles.metadataItem}>
+                    <span className={styles.label}>Subject:</span>
+                    <span>{lessonPlan.subject}</span>
+                </div>
+                <div className={styles.metadataItem}>
+                    <span className={styles.label}>Grade:</span>
+                    <span className={styles.grade}>{lessonPlan.grade_level}</span>
+                </div>
+                <div className={styles.metadataItem}>
+                    <span className={styles.label}>Created:</span>
+                    <span className={styles.date}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 4V8L10.5 10.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {new Date(lessonPlan.metadata?.created || '').toLocaleDateString()}
+                    </span>
+                </div>
+                <div className={styles.metadataItem}>
+                    <span className={styles.label}>Last Updated:</span>
+                    <span className={styles.date}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 4V8L10.5 10.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {new Date(lessonPlan.metadata?.lastSaved || '').toLocaleDateString()}
+                    </span>
+                </div>
+            </div>
+            <div className={styles.content}>
+                <div className={styles.editorContainer}>
                     <Editor 
-                        content={lessonPlan.content}
+                        content={currentContent}
                         onUpdate={handleContentChange}
                     />
                 </div>
