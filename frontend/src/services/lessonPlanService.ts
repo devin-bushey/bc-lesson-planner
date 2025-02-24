@@ -10,7 +10,14 @@ export interface LessonPlan {
     metadata: any;
 }
 
-export const createApiClient = (getToken: () => Promise<string>) => {
+export interface UserProfile {
+    sub: string;
+    email: string;
+    name: string;
+    picture: string;
+}
+
+export const createApiClient = (getToken: () => Promise<string>, userProfile?: UserProfile) => {
     const getAuthHeaders = async () => {
         try {
             const token = await getToken();
@@ -18,6 +25,7 @@ export const createApiClient = (getToken: () => Promise<string>) => {
             return {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
+                'X-User-Profile': userProfile ? JSON.stringify(userProfile) : '',
             };
         } catch (error) {
             console.error('Error getting auth headers:', error);

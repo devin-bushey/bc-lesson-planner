@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 import json
-from typing import Dict
+from typing import Dict, List
 from database.db_manager import DatabaseManager
 from utils.logger import setup_logger
 import openai
@@ -25,12 +25,18 @@ class LessonPlannerAgent:
         self.prompt_chain = LessonPlanChain()
         self.youtube_api = YouTubeEducationalAPI()
 
-    def _create_context_prompt(self, previous_plans):
-        context = "Previous lesson plans covered:\n"
-        for plan in previous_plans:
-            logger.info(f"Using previous plan {plan.get('date')}, Subject: {plan.get('subject')}")
-            context += f"- Date: {plan.get('date')}, Subject: {plan.get('subject')}, "
-            context += f"Previous plan: {json.dumps(plan.get('content', {}), indent=2)}\n"
+    def _create_context_prompt(self, previous_plans: List[Dict]) -> str:
+        if not previous_plans:
+            return "No previous lesson plans available for context."
+        
+        context = "Previous lesson plans:\n"
+        for i, plan in enumerate(previous_plans, 1):
+            context += f"\nPlan {i}:\n"
+            context += f"Date: {plan['date']}\n"
+            if isinstance(plan['content'], str):
+                context += f"Content: {plan['content'][:500]}...\n"
+            else:
+                context += f"Content: {json.dumps(plan['content'], indent=2)[:500]}...\n"
         return context
 
     async def _get_curriculum_context(self, query: str, num_results: int = 5) -> str:
@@ -68,11 +74,11 @@ class LessonPlannerAgent:
         )
         return response.choices[0].message.content
 
-    async def generate_daily_plan(self) -> Dict:
+    async def generate_daily_plan(self, user_id: int) -> Dict:
         logger.info(f"Generating lesson plan for Grade {self.grade_level} {self.subject}")
 
         # Get previous plans for context
-        previous_plans = self.db_manager.get_previous_plans(self.grade_level, self.subject)
+        previous_plans = self.db_manager.get_previous_plans(self.grade_level, self.subject, user_id)
         context_prompt = self._create_context_prompt(previous_plans)
         
         # Get curriculum context based on grade and subject
@@ -113,7 +119,7 @@ class LessonPlannerAgent:
         }
 
         # Save the plan and get its ID
-        plan_id = self.db_manager.save_plan(plan)
+        plan_id = self.db_manager.save_plan(plan, user_id)
         plan["id"] = plan_id
         
         return plan

@@ -25,17 +25,17 @@ class DatabaseManager:
             result = cursor.fetchone()
             return result[0] if result else []
 
-    def get_previous_plans(self, grade_level: str, subject: str, limit: int = 5) -> List[Dict]:
+    def get_previous_plans(self, grade_level: str, subject: str, user_id: int, limit: int = 5) -> List[Dict]:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT date, content, metadata 
                 FROM lesson_plans 
-                WHERE grade_level = %s AND subject = %s 
+                WHERE grade_level = %s AND subject = %s AND user_id = %s
                 ORDER BY date DESC 
                 LIMIT %s
                 """,
-                (grade_level, subject, limit)
+                (grade_level, subject, user_id, limit)
             )
             results = cursor.fetchall()
             return [
@@ -47,14 +47,16 @@ class DatabaseManager:
                 for result in results
             ]
 
-    def get_all_lesson_plans(self) -> List[Dict]:
+    def get_all_lesson_plans(self, user_id: int) -> List[Dict]:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT id, date, grade_level, subject, content, metadata, title
                 FROM lesson_plans
+                WHERE user_id = %s
                 ORDER BY date DESC
-                """
+                """,
+                (user_id,)
             )
             results = cursor.fetchall()
             return [
@@ -70,15 +72,15 @@ class DatabaseManager:
                 for result in results
             ]
 
-    def get_lesson_plan_by_id(self, plan_id: int) -> Optional[Dict]:
+    def get_lesson_plan_by_id(self, plan_id: int, user_id: int) -> Optional[Dict]:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT id, date, grade_level, subject, content, metadata, title
                 FROM lesson_plans
-                WHERE id = %s
+                WHERE id = %s AND user_id = %s
                 """,
-                (plan_id,)
+                (plan_id, user_id)
             )
             result = cursor.fetchone()
             if result is None:
@@ -93,12 +95,12 @@ class DatabaseManager:
                 "title": result[6]
             }
 
-    def save_plan(self, plan: Dict) -> int:
+    def save_plan(self, plan: Dict, user_id: int) -> int:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO lesson_plans (date, grade_level, subject, content, metadata, title)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO lesson_plans (date, grade_level, subject, content, metadata, title, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -107,17 +109,21 @@ class DatabaseManager:
                     plan["subject"],
                     Json(plan["content"]),
                     Json(plan["metadata"]),
-                    plan.get("title", f"{plan['subject']} Lesson")
+                    plan.get("title", f"{plan['subject']} Lesson"),
+                    user_id
                 )
             )
             plan_id = cursor.fetchone()[0]
             self.conn.commit()
             return plan_id
 
-    def update_lesson_plan(self, plan_id: int, plan_data: Dict) -> Optional[Dict]:
+    def update_lesson_plan(self, plan_id: int, plan_data: Dict, user_id: int) -> Optional[Dict]:
         with self.conn.cursor() as cursor:
-            # First check if the plan exists
-            cursor.execute("SELECT id FROM lesson_plans WHERE id = %s", (plan_id,))
+            # First check if the plan exists and belongs to the user
+            cursor.execute(
+                "SELECT id FROM lesson_plans WHERE id = %s AND user_id = %s",
+                (plan_id, user_id)
+            )
             if cursor.fetchone() is None:
                 return None
 
@@ -144,21 +150,22 @@ class DatabaseManager:
                 values.append(plan_data["date"])
 
             if not update_fields:
-                return self.get_lesson_plan_by_id(plan_id)
+                return self.get_lesson_plan_by_id(plan_id, user_id)
 
             # Add the plan_id to the values list
             values.append(plan_id)
+            values.append(user_id)
 
             # Execute the update
             cursor.execute(
                 f"""
                 UPDATE lesson_plans
                 SET {", ".join(update_fields)}
-                WHERE id = %s
+                WHERE id = %s AND user_id = %s
                 """,
                 tuple(values)
             )
             self.conn.commit()
 
             # Return the updated plan
-            return self.get_lesson_plan_by_id(plan_id)
+            return self.get_lesson_plan_by_id(plan_id, user_id)

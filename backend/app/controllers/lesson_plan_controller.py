@@ -1,5 +1,6 @@
 from flask import request, jsonify
 from services.lesson_planner_service import LessonPlannerAgent
+from services.user_service import UserService
 from functools import wraps
 import asyncio
 import json
@@ -40,6 +41,27 @@ def get_token_auth_header():
     logger.debug("Token extracted successfully")
     return token
 
+def get_user_from_token(token):
+    try:
+        unverified_claims = jwt.get_unverified_claims(token)
+        # Try to get user profile from headers first
+        user_profile_header = request.headers.get('X-User-Profile')
+        if user_profile_header:
+            try:
+                user_profile = json.loads(user_profile_header)
+                # Merge the profile data with the token claims
+                unverified_claims.update({
+                    'email': user_profile.get('email'),
+                    'name': user_profile.get('name'),
+                    'picture': user_profile.get('picture')
+                })
+            except json.JSONDecodeError:
+                logger.error("Failed to parse user profile from header")
+        return unverified_claims
+    except Exception as e:
+        logger.error(f"Error getting user from token: {str(e)}")
+        return None
+
 def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -68,38 +90,31 @@ def requires_auth(f):
 
             if rsa_key:
                 try:
-                    logger.debug("Attempting to decode token")
                     payload = jwt.decode(
                         token,
                         rsa_key,
                         algorithms=ALGORITHMS,
                         audience=AUTH0_AUDIENCE,
-                        issuer=f"https://{AUTH0_DOMAIN}/",
-                        options={
-                            'verify_at_hash': False,
-                        }
+                        issuer=f"https://{AUTH0_DOMAIN}/"
                     )
-                    logger.debug(f"Token decoded successfully: {payload}")
+                    request.auth_user = get_user_from_token(token)
                     return f(*args, **kwargs)
                 except jwt.ExpiredSignatureError:
-                    logger.error("Token expired")
                     return jsonify({"message": "Token has expired"}), 401
-                except jwt.JWTClaimsError as e:
-                    logger.error(f"JWT claims error: {str(e)}")
-                    return jsonify({"message": f"Invalid claims: {str(e)}"}), 401
+                except jwt.JWTClaimsError:
+                    return jsonify({"message": "Invalid claims"}), 401
                 except Exception as e:
-                    logger.error(f"Token decode error: {str(e)}")
-                    return jsonify({"message": f"Token decode error: {str(e)}"}), 401
-
-            logger.error("No RSA key found")
+                    return jsonify({"message": str(e)}), 401
             return jsonify({"message": "Unable to find appropriate key"}), 401
         except Exception as e:
-            logger.error(f"Authentication error: {str(e)}")
-            return jsonify({"message": f"Authentication error: {str(e)}"}), 401
+            return jsonify({"message": str(e)}), 401
 
     return decorated
 
 def init_routes(app):
+    # Initialize services
+    user_service = UserService(app.db_connection)
+
     @app.route('/generate-plan', methods=['POST'])
     @requires_auth
     def generate_plan():
@@ -108,10 +123,13 @@ def init_routes(app):
             grade = data.get('grade')
             subject = data.get('subject')
 
+            # Get or create user
+            user_id = user_service.get_or_create_user(request.auth_user)
+
             planner = LessonPlannerAgent(grade, subject)
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            plan = loop.run_until_complete(planner.generate_daily_plan())
+            plan = loop.run_until_complete(planner.generate_daily_plan(user_id))
 
             return jsonify(plan)
         except Exception as e:
@@ -122,10 +140,15 @@ def init_routes(app):
     @requires_auth
     def get_lesson_plans():
         try:
-            planner = LessonPlannerAgent(None, None)
-            plans = planner.db_manager.get_all_lesson_plans()
+            print('request.auth_user', request.auth_user)
+            print('request', request)
+            # Get or create user
+            user_id = user_service.get_or_create_user(request.auth_user)
             
-            # Ensure each plan has a title, even if null
+            planner = LessonPlannerAgent(None, None)
+            plans = planner.db_manager.get_all_lesson_plans(user_id)
+            
+            # Ensure each plan has a title
             for plan in plans:
                 if 'title' not in plan:
                     plan['title'] = f"{plan['subject']} Lesson"
@@ -139,8 +162,11 @@ def init_routes(app):
     @requires_auth
     def get_lesson_plan(plan_id):
         try:
+            # Get or create user
+            user_id = user_service.get_or_create_user(request.auth_user)
+            
             planner = LessonPlannerAgent(None, None)
-            plan = planner.db_manager.get_lesson_plan_by_id(plan_id)
+            plan = planner.db_manager.get_lesson_plan_by_id(plan_id, user_id)
             if plan is None:
                 return jsonify({'error': 'Lesson plan not found'}), 404
             
@@ -157,9 +183,12 @@ def init_routes(app):
     @requires_auth
     def update_lesson_plan(plan_id):
         try:
+            # Get or create user
+            user_id = user_service.get_or_create_user(request.auth_user)
+            
             data = request.get_json()
             planner = LessonPlannerAgent(None, None)
-            updated_plan = planner.db_manager.update_lesson_plan(plan_id, data)
+            updated_plan = planner.db_manager.update_lesson_plan(plan_id, data, user_id)
             if updated_plan is None:
                 return jsonify({'error': 'Failed to update lesson plan'}), 404
             return jsonify(updated_plan)
