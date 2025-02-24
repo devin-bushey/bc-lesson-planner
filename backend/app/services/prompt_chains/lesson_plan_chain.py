@@ -18,7 +18,7 @@ class LessonPlanChain:
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a BC curriculum specialist. Format responses concisely."},
+                {"role": "system", "content": "You are a BC curriculum specialist. Format responses in clean HTML only, with no explanations or markdown code blocks. Return only the requested content."},
                 *self.conversation_history[-2:],  # Only keep last 2 messages for context
                 {"role": "user", "content": prompt}
             ]
@@ -163,7 +163,8 @@ class LessonPlanChain:
             Assessment: {assessment}
             Context: {prev_context_summary}
 
-            HTML format:
+            Return ONLY the HTML content for the lesson plan, with NO explanations or comments.
+            Use this structure:
             <div class="section">
             <h2>Section Title</h2>
             <h3>Subsection</h3>
@@ -171,7 +172,7 @@ class LessonPlanChain:
             <span class="time">Duration</span>
             </div>
 
-            Sections:
+            Required sections in order:
             1. Overview
             2. Objectives
             3. Materials

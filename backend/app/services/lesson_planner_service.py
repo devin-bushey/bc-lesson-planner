@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from typing import Dict, List
 from database.db_manager import DatabaseManager
@@ -32,7 +32,7 @@ class LessonPlannerAgent:
         context = "Previous lesson plans:\n"
         for i, plan in enumerate(previous_plans, 1):
             context += f"\nPlan {i}:\n"
-            context += f"Date: {plan['date']}\n"
+            context += f"Created: {plan['created_at']}\n"
             if isinstance(plan['content'], str):
                 context += f"Content: {plan['content'][:500]}...\n"
             else:
@@ -85,8 +85,8 @@ class LessonPlannerAgent:
         curriculum_query = f"curriculum objectives for grade {self.grade_level} {self.subject}"
         curriculum_context = await self._get_curriculum_context(curriculum_query)
 
-        # Get lesson plan templates
-        templates = self.lesson_templates.get("templates", {})
+        # Get lesson plan templates - ensure it's a dictionary
+        templates = {"templates": self.lesson_templates} if isinstance(self.lesson_templates, list) else self.lesson_templates
         
         # Get educational videos for the lesson
         educational_videos = await self.youtube_api.search_videos(
@@ -106,12 +106,10 @@ class LessonPlannerAgent:
         
         # Create structured plan
         plan = {
-            "date": datetime.now().strftime("%Y-%m-%d"),
             "grade_level": self.grade_level,
             "subject": self.subject,
             "content": chain_result["content"],
             "metadata": {
-                "generated_at": datetime.now().isoformat(),
                 "previous_plans_referenced": len(previous_plans) if previous_plans else 0,
                 "chain_history": chain_result["chain_history"],
                 "video_resources": educational_videos

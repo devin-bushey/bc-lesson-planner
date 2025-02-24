@@ -1,28 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LessonPlan } from '../services/lessonPlanService';
-import { useApi } from '../hooks/useApi';
+import { LessonPlan, createApiClient } from '../services/lessonPlanService';
+import { useAuth0 } from '@auth0/auth0-react';
+import Editor from './Editor/Editor';
 import styles from './LessonPlanDisplay.module.css';
 import statusStyles from './subcomponents/StatusIndicator.module.css';
-import Editor from './Editor/Editor';
 
-interface UnsavedChangesModalProps {
+const UnsavedChangesModal: React.FC<{
     isOpen: boolean;
+    onCancel: () => void; 
     onConfirm: () => void;
-    onCancel: () => void;
-}
-
-const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ isOpen, onConfirm, onCancel }) => {
+}> = ({ isOpen, onCancel, onConfirm }) => {
     if (!isOpen) return null;
 
     return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modal}>
-                <h2>Unsaved Changes</h2>
+        <div 
+            className={styles.modalOverlay} 
+            onClick={onCancel}
+        >
+            <div 
+                className={styles.modal} 
+                onClick={e => e.stopPropagation()}
+            >
                 <p>You have unsaved changes. Are you sure you want to leave?</p>
                 <div className={styles.modalButtons}>
-                    <button onClick={onCancel}>Stay</button>
-                    <button onClick={onConfirm}>Leave</button>
+                    <button 
+                        className={`${styles.button} ${styles.primaryButton}`}
+                        onClick={onCancel}
+                        autoFocus
+                    >
+                        Stay
+                    </button>
+                    <button 
+                        className={styles.button}
+                        onClick={onConfirm}
+                    >
+                        Leave
+                    </button>
                 </div>
             </div>
         </div>
@@ -32,12 +46,16 @@ const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ isOpen, onCon
 const LessonPlanDisplay: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const api = useApi();
+    const { getAccessTokenSilently } = useAuth0();
+    const apiClient = createApiClient(getAccessTokenSilently);
     const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [initialContent, setInitialContent] = useState<string>('');
+    const [currentContent, setCurrentContent] = useState<string>('');
     const [hasEditorChanges, setHasEditorChanges] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    const [isContentSaving, setIsContentSaving] = useState(false);
+    const [isMetadataSaving, setIsMetadataSaving] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [titleInput, setTitleInput] = useState('');
@@ -68,12 +86,12 @@ const LessonPlanDisplay: React.FC = () => {
 
     useEffect(() => {
         const fetchLessonPlan = async () => {
-            if (!id) return;
-            
             try {
-                const data = await api.getLessonPlan(parseInt(id));
+                const data = await apiClient.getLessonPlan(Number(id));
+                const content = data.content || '';
                 setLessonPlan(data);
-                setTitleInput(data.title || `${data.subject} Lesson`);
+                setInitialContent(content);
+                setCurrentContent(content);
             } catch (err) {
                 setError('Failed to load lesson plan');
             } finally {
@@ -81,8 +99,17 @@ const LessonPlanDisplay: React.FC = () => {
             }
         };
 
-        fetchLessonPlan();
-    }, [id, api]);
+        if (id) {
+            fetchLessonPlan();
+        }
+    }, [id, apiClient]);
+
+    // Track content changes
+    useEffect(() => {
+        if (!loading) {
+            setHasEditorChanges(currentContent !== initialContent);
+        }
+    }, [currentContent, initialContent, loading]);
 
     const handleContentChange = (content: string) => {
         if (lessonPlan) {
@@ -90,26 +117,34 @@ const LessonPlanDisplay: React.FC = () => {
                 ...lessonPlan,
                 content: content
             });
-            setHasEditorChanges(content !== lessonPlan.content);
+            setCurrentContent(content);
         }
     };
 
     const handleSave = async () => {
-        if (!lessonPlan || !id) return;
+        if (!lessonPlan || !id || !hasEditorChanges) return;
         
-        setIsSaving(true);
+        setIsContentSaving(true);
         try {
-            const updatedPlan = await api.updateLessonPlan(parseInt(id), {
-                ...lessonPlan,
-                content: lessonPlan.content
+            await apiClient.updateLessonPlan(Number(id), {
+                content: currentContent,
+                metadata: {
+                    ...lessonPlan.metadata,
+                    lastSaved: new Date().toISOString()
+                }
             });
-            setLessonPlan(updatedPlan);
+            setLessonPlan({
+                ...lessonPlan,
+                content: currentContent
+            });
+            setInitialContent(currentContent);
             setHasEditorChanges(false);
+            setShowUnsavedModal(false);
         } catch (err) {
             setError('Failed to save changes. Please try again.');
             console.error('Save error:', err);
         } finally {
-            setIsSaving(false);
+            setIsContentSaving(false);
         }
     };
 
@@ -122,9 +157,9 @@ const LessonPlanDisplay: React.FC = () => {
     const handleTitleSave = async (newTitle: string) => {
         if (!lessonPlan || !id) return;
         
-        setIsSaving(true);
+        setIsMetadataSaving(true);
         try {
-            const updatedPlan = await api.updateLessonPlan(parseInt(id), {
+            const updatedPlan = await apiClient.updateLessonPlan(Number(id), {
                 ...lessonPlan,
                 title: newTitle
             });
@@ -134,7 +169,7 @@ const LessonPlanDisplay: React.FC = () => {
             setError('Failed to save title. Please try again.');
             console.error('Save error:', err);
         } finally {
-            setIsSaving(false);
+            setIsMetadataSaving(false);
         }
     };
 
@@ -145,9 +180,9 @@ const LessonPlanDisplay: React.FC = () => {
     const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         if (!lessonPlan || !id) return;
         
-        setIsSaving(true);
+        setIsMetadataSaving(true);
         try {
-            const updatedPlan = await api.updateLessonPlan(parseInt(id), {
+            const updatedPlan = await apiClient.updateLessonPlan(Number(id), {
                 ...lessonPlan,
                 metadata: {
                     ...lessonPlan.metadata,
@@ -159,7 +194,7 @@ const LessonPlanDisplay: React.FC = () => {
             setError('Failed to update status. Please try again.');
             console.error('Save error:', err);
         } finally {
-            setIsSaving(false);
+            setIsMetadataSaving(false);
         }
     };
 
@@ -206,12 +241,12 @@ const LessonPlanDisplay: React.FC = () => {
                                 value={titleInput}
                                 onChange={(e) => setTitleInput(e.target.value)}
                                 onBlur={handleTitleBlur}
-                                className={`${styles.titleInput} ${isSaving ? styles.saving : ''}`}
+                                className={`${styles.titleInput} ${isMetadataSaving ? styles.saving : ''}`}
                                 placeholder="Enter lesson title..."
                                 autoFocus
-                                disabled={isSaving}
+                                disabled={isMetadataSaving}
                             />
-                            {isSaving && (
+                            {isMetadataSaving && (
                                 <div className={styles.loadingSpinner}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                         <path d="M8 1.5V4.5M8 11.5V14.5M3 8H0M16 8H13M13.7 13.7L11.5 11.5M13.7 2.3L11.5 4.5M2.3 13.7L4.5 11.5M2.3 2.3L4.5 4.5" 
@@ -224,44 +259,79 @@ const LessonPlanDisplay: React.FC = () => {
                             )}
                         </div>
                     ) : (
-                        <h1 
-                            className={styles.title}
-                            onClick={handleTitleEdit}
-                        >
-                            {lessonPlan.title || `${lessonPlan.subject} Lesson`}
-                        </h1>
+                        <div className={styles.titleDisplay}>
+                            <h1 onClick={handleTitleEdit} className={styles.editableTitle}>
+                                {lessonPlan?.title || `${lessonPlan?.subject} Lesson`}
+                            </h1>
+                        </div>
                     )}
+                    <div className={styles.subtitle}>
+                        <span>{lessonPlan?.subject}</span>
+                        <span>•</span>
+                        <span>Grade {lessonPlan?.grade_level}</span>
+                    </div>
                 </div>
-                <div className={styles.headerRight}>
-                    <button
-                        className={`${styles.saveButton} ${hasEditorChanges ? styles.hasChanges : ''}`}
-                        onClick={handleSave}
-                        disabled={!hasEditorChanges || isSaving}
-                    >
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
+                <div className={styles.metadata}>
+                    <div className={styles.date}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4C14 2.89543 13.1046 2 12 2Z" stroke="currentColor" strokeWidth="1.5"/>
+                            <path d="M2 6H14" stroke="currentColor" strokeWidth="1.5"/>
+                            <path d="M6 4V2" stroke="currentColor" strokeWidth="1.5"/>
+                            <path d="M10 4V2" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
+                        Created: {new Date(lessonPlan.created_at).toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                        })}
+                    </div>
+                    <div className={styles.date}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 4V8L10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
+                        Last Updated: {new Date(lessonPlan.updated_at).toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                        })}
+                    </div>
+                    <div className={statusStyles.status}>
+                        <select
+                            value={lessonPlan.metadata?.status || 'Draft'}
+                            onChange={handleStatusChange}
+                            className={`${statusStyles.statusSelect} ${
+                                lessonPlan.metadata?.status === 'Scheduled' ? statusStyles.scheduled :
+                                lessonPlan.metadata?.status === 'Completed' ? statusStyles.completed : ''
+                            }`}
+                            disabled={isMetadataSaving}
+                        >
+                            <option value="Draft">Draft</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
                 </div>
+                <button 
+                    className={`${styles.saveButton} ${hasEditorChanges ? styles.hasChanges : ''}`}
+                    onClick={handleSave}
+                    disabled={!hasEditorChanges || isContentSaving || loading}
+                >
+                    {isContentSaving ? 'Saving...' : hasEditorChanges ? 'Save Changes' : 'Saved'}
+                </button>
             </div>
-            <div className={styles.metadata}>
-                <div className={styles.metadataItem}>
-                    <span className={styles.label}>Grade:</span>
-                    <span>{lessonPlan.grade_level}</span>
-                </div>
-                <div className={styles.metadataItem}>
-                    <span className={styles.label}>Subject:</span>
-                    <span>{lessonPlan.subject}</span>
-                </div>
-                <div className={styles.metadataItem}>
-                    <span className={styles.label}>Created:</span>
-                    <span>{new Date(lessonPlan.date).toLocaleDateString()}</span>
-                </div>
-            </div>
-            <div className={styles.content}>
-                <div className={styles.editorContainer}>
-                    <Editor
+
+            <div className={styles.editorContainer}>
+                <div className={styles.editorContent}>
+                    <Editor 
                         content={lessonPlan.content}
                         onUpdate={handleContentChange}
-                        isDisabled={isSaving}
                     />
                 </div>
             </div>

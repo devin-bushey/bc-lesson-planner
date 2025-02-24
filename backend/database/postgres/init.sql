@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS lesson_templates (
 CREATE TABLE IF NOT EXISTS lesson_plans (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255),
-    date DATE NOT NULL,
     grade_level VARCHAR(50) NOT NULL,
     subject VARCHAR(50) NOT NULL,
     content JSONB NOT NULL,
