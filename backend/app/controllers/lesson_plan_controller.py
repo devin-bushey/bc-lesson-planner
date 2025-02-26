@@ -45,19 +45,27 @@ def get_token_auth_header():
 def get_user_from_token(token):
     try:
         unverified_claims = jwt.get_unverified_claims(token)
+        logger.debug(f"Token claims: {unverified_claims}")
+        
         # Try to get user profile from headers first
         user_profile_header = request.headers.get('X-User-Profile')
         if user_profile_header:
             try:
                 user_profile = json.loads(user_profile_header)
+                logger.debug(f"User profile from header: {user_profile}")
+                
                 # Merge the profile data with the token claims
                 unverified_claims.update({
                     'email': user_profile.get('email'),
                     'name': user_profile.get('name'),
                     'picture': user_profile.get('picture')
                 })
+                logger.debug(f"Merged user data: {unverified_claims}")
             except json.JSONDecodeError:
-                logger.error("Failed to parse user profile from header")
+                logger.error(f"Failed to parse user profile from header: {user_profile_header}")
+        else:
+            logger.warning("No X-User-Profile header found in request")
+            
         return unverified_claims
     except Exception as e:
         logger.error(f"Error getting user from token: {str(e)}")

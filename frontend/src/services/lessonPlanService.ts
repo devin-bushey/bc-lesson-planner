@@ -23,6 +23,14 @@ export const createApiClient = (getToken: () => Promise<string>, userProfile?: U
         try {
             const token = await getToken();
             console.debug('Got token for API request');
+            
+            // Log if user profile is missing
+            if (!userProfile) {
+                console.warn('User profile is missing when creating API headers');
+            } else {
+                console.debug('Including user profile in request headers');
+            }
+            
             return {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
