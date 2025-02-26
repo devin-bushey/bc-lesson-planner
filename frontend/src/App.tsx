@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import LessonPlanForm from './components/LessonPlanForm';
 import LessonPlanDisplay from './components/LessonPlanDisplay';
 import LessonPlanList from './components/LessonPlanList';
+import ReportCardFeedback from './components/ReportCardFeedback';
 import Login from './components/Auth/Login';
 import './App.css';
 
@@ -24,6 +25,9 @@ const Navigation = () => {
             </NavLink>
             <NavLink to="/plans" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               View Plans
+            </NavLink>
+            <NavLink to="/report-feedback" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              Report Feedback
             </NavLink>
           </div>
         )}
@@ -87,6 +91,15 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <LessonPlanDisplay />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/report-feedback"
+            element={
+              <ProtectedRoute>
+                <ReportCardFeedback />
               </ProtectedRoute>
             }
           />

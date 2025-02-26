@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from services.lesson_planner_service import LessonPlannerAgent
 from services.user_service import UserService
+from services.report_feedback_service import ReportFeedbackService
 from functools import wraps
 import asyncio
 import json
@@ -114,6 +115,7 @@ def requires_auth(f):
 def init_routes(app):
     # Initialize services
     user_service = UserService(app.db_connection)
+    report_feedback_service = ReportFeedbackService()
 
     @app.route('/generate-plan', methods=['POST'])
     @requires_auth
@@ -195,3 +197,41 @@ def init_routes(app):
         except Exception as e:
             logger.error(f"Error updating lesson plan: {str(e)}")
             return jsonify({"message": str(e)}), 500
+
+    @app.route('/refine-feedback', methods=['POST', 'OPTIONS'])
+    def refine_feedback_handler():
+        # Handle the actual POST request for feedback refinement
+        if request.method == 'POST':
+            return requires_auth(refine_feedback)()
+        # Handle preflight OPTIONS request (browser automatically sends this)
+        else:
+            return '', 200
+    
+    def refine_feedback():
+        try:
+            # Get the feedback from the request
+            data = request.get_json()
+            if not data or 'feedback' not in data:
+                return jsonify({'error': 'Missing feedback in request'}), 400
+            
+            feedback = data['feedback']
+            
+            # Get user info from token
+            token = get_token_auth_header()
+            user = get_user_from_token(token)
+            
+            logger.debug(f"Refining feedback for user: {user.get('email', 'unknown')}")
+            
+            # Refine the feedback
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            refined_feedback = loop.run_until_complete(
+                report_feedback_service.refine_feedback(feedback)
+            )
+            loop.close()
+            
+            return jsonify(refined_feedback), 200
+            
+        except Exception as e:
+            logger.error(f"Error refining feedback: {str(e)}")
+            return jsonify({'error': str(e)}), 500

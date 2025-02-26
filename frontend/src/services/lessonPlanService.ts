@@ -121,6 +121,27 @@ export const createApiClient = (getToken: () => Promise<string>, userProfile?: U
                 console.error('Error in updateLessonPlan:', error);
                 throw error;
             }
+        },
+
+        refineReportCardFeedback: async (feedback: string): Promise<string> => {
+            try {
+                const headers = await getAuthHeaders();
+                const response = await fetch(`${API_BASE_URL}/refine-feedback`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ feedback }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Failed to refine report card feedback');
+                }
+
+                return response.json();
+            } catch (error) {
+                console.error('Error in refineReportCardFeedback:', error);
+                throw error;
+            }
         }
     };
 }; 
