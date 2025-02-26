@@ -32,7 +32,6 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_lesson_templates_data ON lesson_templates USING GIN (data);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_grade_subject ON lesson_plans(grade_level, subject);
-CREATE INDEX IF NOT EXISTS idx_lesson_plans_date ON lesson_plans(date DESC);
 CREATE INDEX IF NOT EXISTS idx_users_auth0_id ON users(auth0_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_plans_user_id ON lesson_plans(user_id);
 
@@ -58,11 +57,11 @@ CREATE TRIGGER update_lesson_plans_timestamp
 
 -- Load initial data from JSON files
 
-\set templates `cat '/knowledge-base/lesson_templates.json'`
-INSERT INTO lesson_templates (id, data)
-SELECT 1, :'templates'::jsonb
-ON CONFLICT (id) DO UPDATE 
-SET data = EXCLUDED.data,
-    updated_at = CURRENT_TIMESTAMP;
+-- \set templates `cat '/knowledge-base/lesson_templates.json'`
+-- INSERT INTO lesson_templates (id, data)
+-- SELECT 1, :'templates'::jsonb
+-- ON CONFLICT (id) DO UPDATE 
+-- SET data = EXCLUDED.data,
+--     updated_at = CURRENT_TIMESTAMP;
 
 -- $ docker exec -it bc-lesson-planner-db-1 psql -U user -d mydatabase
