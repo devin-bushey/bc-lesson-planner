@@ -1,5 +1,6 @@
 import streamlit as st
 import lancedb
+import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -9,6 +10,8 @@ load_dotenv()
 # Initialize OpenAI client
 client = OpenAI()
 
+# Get database path from environment variable or use default
+LANCEDB_PATH = os.getenv("LANCEDB_PATH", "data/lancedb")
 
 # Initialize LanceDB connection
 @st.cache_resource
@@ -16,10 +19,17 @@ def init_db():
     """Initialize database connection.
 
     Returns:
-        LanceDB table object
+        LanceDB table object or None if database doesn't exist
     """
-    db = lancedb.connect("data/lancedb")
-    return db.open_table("bc_curriculum_website")
+    try:
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(LANCEDB_PATH), exist_ok=True)
+        
+        db = lancedb.connect(LANCEDB_PATH)
+        return db.open_table("bc_curriculum_website")
+    except Exception as e:
+        st.error(f"Error connecting to database: {str(e)}")
+        return None
 
 
 def get_context(query: str, table, num_results: int = 3) -> str:
@@ -33,26 +43,32 @@ def get_context(query: str, table, num_results: int = 3) -> str:
     Returns:
         str: Concatenated context from relevant chunks with source information
     """
-    results = table.search(query).limit(num_results).to_pandas()
-    contexts = []
+    if table is None:
+        return "Database is not available. Please check your configuration."
+        
+    try:
+        results = table.search(query).limit(num_results).to_pandas()
+        contexts = []
 
-    for _, row in results.iterrows():
-        # Extract metadata
-        filename = row["metadata"]["filename"]
-        title = row["metadata"]["title"]
+        for _, row in results.iterrows():
+            # Extract metadata
+            filename = row["metadata"]["filename"]
+            title = row["metadata"]["title"]
 
-        # Build source citation
-        source_parts = []
-        if filename:
-            source_parts.append(filename)
+            # Build source citation
+            source_parts = []
+            if filename:
+                source_parts.append(filename)
 
-        source = f"\nSource: {' - '.join(source_parts)}"
-        if title:
-            source += f"\nTitle: {title}"
+            source = f"\nSource: {' - '.join(source_parts)}"
+            if title:
+                source += f"\nTitle: {title}"
 
-        contexts.append(f"{row['text']}{source}")
+            contexts.append(f"{row['text']}{source}")
 
-    return "\n\n".join(contexts)
+        return "\n\n".join(contexts)
+    except Exception as e:
+        return f"Error searching database: {str(e)}"
 
 
 def get_chat_response(messages, context: str) -> str:

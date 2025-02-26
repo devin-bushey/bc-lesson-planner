@@ -1,6 +1,11 @@
 import subprocess
+import os
 from typing import List, Dict
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 def run_embedding_command(url: str, name: str, table: str) -> bool:
     """Run embedding command for a PDF URL."""

@@ -78,6 +78,30 @@ cd backend/database/vectordb
 streamlit run chat.py
 ```
 
+### Environment Variables
+
+The application uses several environment variables for configuration:
+
+- **Database Configuration**:
+  - `POSTGRES_DB`: PostgreSQL database name
+  - `POSTGRES_USER`: PostgreSQL username
+  - `POSTGRES_PASSWORD`: PostgreSQL password
+  - `POSTGRES_HOST`: PostgreSQL host
+  - `POSTGRES_PORT`: PostgreSQL port
+
+- **Vector Database**:
+  - `LANCEDB_PATH`: Path to the LanceDB vector database
+    - For local development: `database/vectordb/data/lancedb`
+    - For production: Set to your desired storage location on render.com or other hosting service
+
+- **Authentication**:
+  - `AUTH0_DOMAIN`: Auth0 domain
+  - `AUTH0_CLIENT_ID`: Auth0 client ID
+  - `AUTH0_CLIENT_SECRET`: Auth0 client secret
+
+- **OpenAI API**:
+  - `OPENAI_API_KEY`: Your OpenAI API key
+
 The application will be available at:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:5000

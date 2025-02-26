@@ -27,7 +27,7 @@ const Navigation = () => {
               View Plans
             </NavLink>
             <NavLink to="/report-feedback" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              Report Feedback
+              Report Card
             </NavLink>
           </div>
         )}

@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 import traceback
 from typing import List
@@ -20,6 +21,9 @@ tokenizer = OpenAITokenizerWrapper()
 MAX_TOKENS = 8191
 
 embedding_func = get_registry().get("openai").create(name="text-embedding-3-large")
+
+# Get database path from environment variable or use default
+LANCEDB_PATH = os.getenv("LANCEDB_PATH", "data/lancedb")
 
 class ChunkMetadata(LanceModel):
     """Metadata schema for curriculum chunks"""
@@ -113,9 +117,13 @@ def process_pdf(url: str, subject_name: str, table_name: str) -> bool:
             print("No chunks to add to database")
             return False
         
-        # Connect to LanceDB
-        print("Connecting to LanceDB...")
-        db = lancedb.connect("data/lancedb")
+        # Connect to LanceDB using environment variable
+        print(f"Connecting to LanceDB at {LANCEDB_PATH}...")
+        
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(LANCEDB_PATH), exist_ok=True)
+        
+        db = lancedb.connect(LANCEDB_PATH)
 
         # Create or get table
         print(f"Creating/accessing table {table_name}...")
