@@ -9,7 +9,7 @@ export interface UserProfile {
 }
 
 export const useUserProfile = () => {
-    const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
+    const { user, isAuthenticated } = useAuth0();
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     useEffect(() => {
