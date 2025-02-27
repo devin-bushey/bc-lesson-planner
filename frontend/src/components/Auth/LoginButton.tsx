@@ -14,9 +14,8 @@ export const LoginButton = () => {
             onClick={() => loginWithRedirect({
                 appState: { returnTo: location.pathname === '/login' ? '/plans' : location.pathname }
             })}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
-            Log In
+            Sign In
         </button>
     );
 }; 

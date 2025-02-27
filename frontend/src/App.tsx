@@ -68,13 +68,18 @@ const Navigation = () => {
                 >
                   Report Card
                 </NavLink>
+                <div className="mobile-logout">
+                  <LogoutButton />
+                </div>
               </div>
             </>
           )}
         </div>
         <div className="nav-right">
           <LoginButton />
-          <LogoutButton />
+          <div className="desktop-logout">
+            <LogoutButton />
+          </div>
         </div>
       </nav>
       {isAuthenticated && (

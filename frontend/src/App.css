@@ -198,6 +198,16 @@ main {
   visibility: visible;
 }
 
+/* Logout button responsive display */
+.mobile-logout {
+  display: none;
+  width: 100%;
+}
+
+.desktop-logout {
+  display: block;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .nav {
@@ -219,6 +229,15 @@ main {
 
   .menu-overlay {
     display: block;
+  }
+
+  .mobile-logout {
+    display: block;
+    margin-top: 0.5rem;
+  }
+
+  .desktop-logout {
+    display: none;
   }
 
   .nav-links {

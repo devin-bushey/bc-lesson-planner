@@ -1,4 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import styles from './LogoutButton.module.css';
 
 export const LogoutButton = () => {
     const { logout, isAuthenticated } = useAuth0();
@@ -14,9 +15,9 @@ export const LogoutButton = () => {
                     returnTo: window.location.origin + '/login'
                 }
             })}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+            className={styles.logoutButton}
         >
-            Log Out
+            Sign Out
         </button>
     );
 }; 
