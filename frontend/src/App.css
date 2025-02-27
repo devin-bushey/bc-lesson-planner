@@ -59,6 +59,26 @@ main {
   padding: 0;
 }
 
+/* Container styles */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem;
+  }
+}
+
 .nav {
   background: var(--color-surface);
   padding: 1rem 2rem;
@@ -142,32 +162,121 @@ main {
   gap: 1rem;
 }
 
+/* Mobile menu button */
+.mobile-menu-button {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-left: auto;
+}
+
+.mobile-menu-button:hover {
+  color: var(--color-primary);
+}
+
+/* Menu overlay */
+.menu-overlay {
+  display: none;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 98;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+}
+
+.menu-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .nav {
-    padding: 1rem 2rem;
+    padding: 0.75rem 1.5rem;
   }
   
   .nav-left {
     gap: 1rem;
+    flex: 1;
   }
   
   .nav-brand {
     font-size: 1.125rem;
   }
+
+  .mobile-menu-button {
+    display: block;
+  }
+
+  .menu-overlay {
+    display: block;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: var(--color-surface);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    box-shadow: var(--shadow-md);
+    border-bottom: 1px solid var(--color-border);
+    transform: translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 99;
+  }
+
+  .nav-links.open {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-link {
+    width: 100%;
+    padding: 0.75rem 1rem;
+  }
 }
 
 @media (max-width: 480px) {
   .nav {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
+    height: auto;
+    min-height: 56px;
+  }
+  
+  .nav-left {
+    gap: 0.5rem;
+  }
+
+  .nav-brand {
+    font-size: 1rem;
   }
   
   .nav-links {
-    gap: 0.5rem;
+    top: 56px;
+    gap: 0.25rem;
   }
   
   .nav-link {
-    padding: 0.5rem;
+    padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
+  }
+
+  .nav-right {
+    gap: 0.5rem;
   }
 }

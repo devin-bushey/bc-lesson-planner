@@ -8,35 +8,82 @@ import LessonPlanDisplay from './components/LessonPlanDisplay';
 import LessonPlanList from './components/LessonPlanList';
 import ReportCardFeedback from './components/ReportCardFeedback';
 import Login from './components/Auth/Login';
+import { useState } from 'react';
 import './App.css';
 
 // Create a navigation component
 const Navigation = () => {
   const { isAuthenticated } = useAuth0();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+  
+  // Close menu when a link is clicked
+  const handleNavLinkClick = () => {
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+  };
+
+  // Close menu when clicking outside
+  const handleOverlayClick = () => {
+    setIsMenuOpen(false);
+  };
   
   return (
-    <nav className="nav">
-      <div className="nav-left">
-        <h1 className="nav-brand">BC Lesson Planner</h1>
-        {isAuthenticated && (
-          <div className="nav-links">
-            <NavLink to="/create" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              Create Plan
-            </NavLink>
-            <NavLink to="/plans" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              View Plans
-            </NavLink>
-            <NavLink to="/report-feedback" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              Report Card
-            </NavLink>
-          </div>
-        )}
-      </div>
-      <div className="nav-right">
-        <LoginButton />
-        <LogoutButton />
-      </div>
-    </nav>
+    <>
+      <nav className="nav">
+        <div className="nav-left">
+          <h1 className="nav-brand">BC Lesson Planner</h1>
+          {isAuthenticated && (
+            <>
+              <button 
+                className="mobile-menu-button" 
+                onClick={toggleMenu}
+                aria-label="Toggle navigation menu"
+              >
+                {isMenuOpen ? '✕' : '☰'}
+              </button>
+              <div className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
+                <NavLink 
+                  to="/create" 
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  onClick={handleNavLinkClick}
+                >
+                  Create Plan
+                </NavLink>
+                <NavLink 
+                  to="/plans" 
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  onClick={handleNavLinkClick}
+                >
+                  View Plans
+                </NavLink>
+                <NavLink 
+                  to="/report-feedback" 
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  onClick={handleNavLinkClick}
+                >
+                  Report Card
+                </NavLink>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="nav-right">
+          <LoginButton />
+          <LogoutButton />
+        </div>
+      </nav>
+      {isAuthenticated && (
+        <div 
+          className={`menu-overlay ${isMenuOpen ? 'open' : ''}`} 
+          onClick={handleOverlayClick}
+        />
+      )}
+    </>
   );
 };
 

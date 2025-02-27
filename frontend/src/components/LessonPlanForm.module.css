@@ -419,3 +419,66 @@
         }
     }
 }
+
+/* Responsive styles for mobile */
+.responsiveContainer {
+  width: 100%;
+  max-width: 800px;
+  padding: 1.5rem;
+}
+
+.responsiveHeading {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.responsiveButton {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .formContainer {
+    padding: 1.25rem;
+    margin: 0;
+  }
+  
+  .responsiveHeading {
+    font-size: 1.5rem;
+  }
+  
+  .description {
+    font-size: 0.9rem;
+  }
+  
+  .textarea {
+    min-height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .formContainer {
+    padding: 1rem;
+  }
+  
+  .responsiveHeading {
+    font-size: 1.25rem;
+  }
+  
+  .description {
+    font-size: 0.85rem;
+  }
+  
+  .formGroup label {
+    font-size: 0.9rem;
+  }
+  
+  .button {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .resultContainer {
+    margin-top: 1.5rem;
+  }
+}

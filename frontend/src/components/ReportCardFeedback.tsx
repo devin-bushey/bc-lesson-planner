@@ -53,8 +53,8 @@ const ReportCardFeedback: React.FC = () => {
                 </div>
             )}
 
-            <div className={styles.formContainer}>
-                <h1>Report Card Feedback Refinement</h1>
+            <div className={`${styles.formContainer} ${styles.responsiveContainer}`}>
+                <h1 className={styles.responsiveHeading}>Report Card Feedback Refinement</h1>
                 <p className={styles.description}>
                     Paste your existing report card feedback below and our AI will help refine it to be more effective and personalized.
                 </p>
@@ -78,7 +78,7 @@ const ReportCardFeedback: React.FC = () => {
 
                     <button 
                         type="submit" 
-                        className={styles.button}
+                        className={`${styles.button} ${styles.responsiveButton}`}
                         disabled={isRefining || !originalFeedback.trim()}
                     >
                         Refine Feedback
@@ -87,7 +87,7 @@ const ReportCardFeedback: React.FC = () => {
 
                 {refinedFeedback && (
                     <div className={styles.resultContainer}>
-                        <h2>Refined Feedback</h2>
+                        <h2 className={styles.responsiveHeading}>Refined Feedback</h2>
                         <p>You can edit the refined feedback below:</p>
                         <div className={styles.editorContainer}>
                             <Editor 
