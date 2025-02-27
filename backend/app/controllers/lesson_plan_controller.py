@@ -223,6 +223,7 @@ def init_routes(app):
                 return jsonify({'error': 'Missing feedback in request'}), 400
             
             feedback = data['feedback']
+            options = data.get('options', {})
             
             # Get user info from token
             token = get_token_auth_header()
@@ -234,7 +235,7 @@ def init_routes(app):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             refined_feedback = loop.run_until_complete(
-                report_feedback_service.refine_feedback(feedback)
+                report_feedback_service.refine_feedback(feedback, options)
             )
             loop.close()
             

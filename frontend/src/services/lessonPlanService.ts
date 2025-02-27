@@ -18,6 +18,13 @@ export interface UserProfile {
     picture: string;
 }
 
+export interface FeedbackOptions {
+    gradeLevel: string;
+    tone: string;
+    responseLength: string;
+    focusAreas: string[];
+}
+
 export const createApiClient = (getToken: () => Promise<string>, userProfile?: UserProfile) => {
     const getAuthHeaders = async () => {
         try {
@@ -131,13 +138,16 @@ export const createApiClient = (getToken: () => Promise<string>, userProfile?: U
             }
         },
 
-        refineReportCardFeedback: async (feedback: string): Promise<string> => {
+        refineReportCardFeedback: async (feedback: string, options?: FeedbackOptions): Promise<string> => {
             try {
                 const headers = await getAuthHeaders();
                 const response = await fetch(`${API_BASE_URL}/refine-feedback`, {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ feedback }),
+                    body: JSON.stringify({ 
+                        feedback,
+                        options
+                    }),
                 });
 
                 if (!response.ok) {

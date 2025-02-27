@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from utils.logger import setup_logger
+from typing import Dict, Any, List, Optional
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -14,12 +15,17 @@ class ReportFeedbackService:
         self.model = "gpt-4"  # Using GPT-4 for better quality refinement
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
-    async def refine_feedback(self, feedback: str) -> str:
+    async def refine_feedback(self, feedback: str, options: Optional[Dict[str, Any]] = None) -> str:
         """
         Refines the report card feedback using OpenAI's GPT model.
         
         Args:
             feedback (str): The original feedback text
+            options (Dict[str, Any], optional): Customization options for the feedback
+                - gradeLevel: The grade level (kindergarten, elementary, middle, high, general)
+                - tone: The tone of the feedback (professional, supportive, encouraging, etc.)
+                - responseLength: The desired length of the response (short, medium, long)
+                - focusAreas: List of areas to focus on (strengths, improvements, growth, etc.)
             
         Returns:
             str: The refined feedback text
@@ -27,16 +33,50 @@ class ReportFeedbackService:
         try:
             logger.info("Refining report card feedback")
             
+            # Default options if none provided
+            if options is None:
+                options = {}
+            
+            grade_level = options.get('gradeLevel', 'general')
+            tone = options.get('tone', 'professional')
+            response_length = options.get('responseLength', 'medium')
+            focus_areas = options.get('focusAreas', ['strengths', 'improvements', 'growth'])
+            
             # Create the prompt for the OpenAI API
             prompt = f"""
             You are an expert educator helping teachers write more effective report card feedback for their students.
             
             Please refine the following report card feedback to make it:
-            1. More specific and actionable
-            2. Balanced with both strengths and areas for improvement
-            3. Personalized and encouraging
-            4. Clear and concise with proper grammar
-            5. Focused on growth mindset language
+            """
+            
+            # Add focus areas to the prompt
+            if 'strengths' in focus_areas:
+                prompt += "\n1. Highlight student strengths and achievements"
+            if 'improvements' in focus_areas:
+                prompt += "\n2. Address areas for improvement constructively"
+            if 'growth' in focus_areas:
+                prompt += "\n3. Use growth mindset language"
+            if 'specific' in focus_areas:
+                prompt += "\n4. Include specific examples and observations"
+            if 'next-steps' in focus_areas:
+                prompt += "\n5. Suggest clear next steps or goals"
+            
+            # Add grade level context
+            prompt += f"\n\nTarget audience: {grade_level.replace('-', ' ').title()} school level"
+            
+            # Add tone guidance
+            prompt += f"\nTone: {tone.replace('-', ' ').title()}"
+            
+            # Add length guidance
+            length_guidance = {
+                'short': 'Keep the response concise (1-2 sentences)',
+                'medium': 'Provide a moderate length response (3-5 sentences)',
+                'long': 'Provide a detailed response (6+ sentences)'
+            }
+            prompt += f"\nLength: {length_guidance.get(response_length, 'Provide a moderate length response')}"
+            
+            # Add the original feedback
+            prompt += f"""
             
             Original feedback:
             {feedback}
