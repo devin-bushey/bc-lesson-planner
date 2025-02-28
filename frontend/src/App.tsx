@@ -7,6 +7,7 @@ import LessonPlanForm from './components/LessonPlanForm';
 import LessonPlanDisplay from './components/LessonPlanDisplay';
 import LessonPlanList from './components/LessonPlanList';
 import ReportCardFeedback from './components/ReportCardFeedback';
+import FeedbackWidget from './components/FeedbackWidget';
 import Login from './components/Auth/Login';
 import { useState } from 'react';
 import './App.css';
@@ -167,6 +168,9 @@ const AppContent = () => {
           />
         </Routes>
       </main>
+      
+      {/* Feedback Widget - only shown when authenticated */}
+      {isAuthenticated && <FeedbackWidget />}
     </div>
   );
 };

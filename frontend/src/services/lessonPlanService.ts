@@ -26,6 +26,13 @@ export interface FeedbackOptions {
     customInstructions?: string;
 }
 
+export interface AppFeedback {
+    rating: number;
+    feedbackText: string;
+    category: string;
+    email?: string;
+}
+
 export const createApiClient = (getToken: () => Promise<string>, userProfile?: UserProfile) => {
     const getAuthHeaders = async () => {
         try {
@@ -159,6 +166,27 @@ export const createApiClient = (getToken: () => Promise<string>, userProfile?: U
                 return response.json();
             } catch (error) {
                 console.error('Error in refineReportCardFeedback:', error);
+                throw error;
+            }
+        },
+
+        submitFeedback: async (feedback: AppFeedback): Promise<{ success: boolean, message: string }> => {
+            try {
+                const headers = await getAuthHeaders();
+                const response = await fetch(`${API_BASE_URL}/submit-feedback`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(feedback),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Failed to submit feedback');
+                }
+
+                return response.json();
+            } catch (error) {
+                console.error('Error in submitFeedback:', error);
                 throw error;
             }
         }

@@ -116,11 +116,11 @@ const ReportCardFeedback: React.FC = () => {
                             <div className={styles.leaf} />
                         </div>
                     </div>
-                    <p>Refining your feedback...</p>
+                    <p className={styles.generatingText}>Refining your feedback...</p>
                 </div>
             )}
 
-            <div className={styles.formContainer}>
+            <div className={`${styles.formContainer} ${styles.responsiveContainer}`}>
                 <h1 className={styles.responsiveHeading}>Report Card Feedback Refinement</h1>
                 <p className={styles.description}>
                     Paste your existing report card feedback below and our AI will help refine it to be more effective and personalized.
@@ -132,14 +132,14 @@ const ReportCardFeedback: React.FC = () => {
                     <button 
                         type="button" 
                         onClick={toggleOptions}
-                        className={`${styles.button} ${styles.secondaryButton}`}
+                        className={`${styles.button} ${styles.secondaryButton} ${styles.responsiveButton}`}
                     >
                         {showOptions ? 'Hide Options' : 'Customize Options'}
                     </button>
                 </div>
 
                 {showOptions && (
-                    <div className={styles.optionsPanel}>
+                    <div className={`${styles.optionsPanel} ${styles.responsivePanel}`}>
                         <h3>Customize Feedback Options</h3>
                         
                         <div className={styles.customInstructionsToggle}>
@@ -226,7 +226,7 @@ const ReportCardFeedback: React.FC = () => {
 
                                 <div className={styles.optionGroup}>
                                     <label>Focus Areas:</label>
-                                    <div className={styles.checkboxGroup}>
+                                    <div className={`${styles.checkboxGroup} ${styles.responsiveCheckboxGroup}`}>
                                         <label className={styles.checkboxLabel}>
                                             <input 
                                                 type="checkbox" 
@@ -284,24 +284,24 @@ const ReportCardFeedback: React.FC = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} className={styles.responsiveForm}>
                     <div className={styles.formGroup}>
-                        <label htmlFor="feedback">Original Feedback:</label>
+                        <label htmlFor="feedback" className={styles.responsiveLabel}>Original Feedback:</label>
                         <textarea
                             id="feedback"
                             name="feedback"
                             value={originalFeedback}
                             onChange={handleInputChange}
                             placeholder="Paste your existing report card feedback here..."
-                            rows={10}
-                            className={styles.textarea}
+                            rows={8}
+                            className={`${styles.textarea} ${styles.responsiveTextarea}`}
                             required
                         />
                     </div>
 
                     <button 
                         type="submit" 
-                        className={styles.primaryButton}
+                        className={`${styles.primaryButton} ${styles.responsiveButton}`}
                         disabled={isRefining}
                     >
                         {isRefining ? 'Refining...' : 'Refine Feedback'}
@@ -309,7 +309,7 @@ const ReportCardFeedback: React.FC = () => {
                 </form>
 
                 {refinedFeedback && (
-                    <div className={styles.resultContainer}>
+                    <div className={`${styles.resultContainer} ${styles.responsiveResultContainer}`}>
                         <h3>Refined Feedback</h3>
                         <Editor 
                             content={refinedFeedback} 
