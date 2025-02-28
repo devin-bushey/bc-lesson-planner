@@ -23,6 +23,7 @@ export interface FeedbackOptions {
     tone: string;
     responseLength: string;
     focusAreas: string[];
+    customInstructions?: string;
 }
 
 export const createApiClient = (getToken: () => Promise<string>, userProfile?: UserProfile) => {

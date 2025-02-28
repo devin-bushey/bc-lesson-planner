@@ -12,7 +12,7 @@ logger = setup_logger()
 
 class ReportFeedbackService:
     def __init__(self):
-        self.model = "gpt-4"  # Using GPT-4 for better quality refinement
+        self.model = "gpt-4.5-preview"  # Using GPT-4 for better quality refinement
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     async def refine_feedback(self, feedback: str, options: Optional[Dict[str, Any]] = None) -> str:
@@ -26,6 +26,7 @@ class ReportFeedbackService:
                 - tone: The tone of the feedback (professional, supportive, encouraging, etc.)
                 - responseLength: The desired length of the response (short, medium, long)
                 - focusAreas: List of areas to focus on (strengths, improvements, growth, etc.)
+                - customInstructions: Custom instructions provided by the user
             
         Returns:
             str: The refined feedback text
@@ -41,6 +42,7 @@ class ReportFeedbackService:
             tone = options.get('tone', 'professional')
             response_length = options.get('responseLength', 'medium')
             focus_areas = options.get('focusAreas', ['strengths', 'improvements', 'growth'])
+            custom_instructions = options.get('customInstructions', '')
             
             # Create the prompt for the OpenAI API
             prompt = f"""
@@ -49,31 +51,46 @@ class ReportFeedbackService:
             Please refine the following report card feedback to make it:
             """
             
-            # Add focus areas to the prompt
-            if 'strengths' in focus_areas:
-                prompt += "\n1. Highlight student strengths and achievements"
-            if 'improvements' in focus_areas:
-                prompt += "\n2. Address areas for improvement constructively"
-            if 'growth' in focus_areas:
-                prompt += "\n3. Use growth mindset language"
-            if 'specific' in focus_areas:
-                prompt += "\n4. Include specific examples and observations"
-            if 'next-steps' in focus_areas:
-                prompt += "\n5. Suggest clear next steps or goals"
-            
-            # Add grade level context
-            prompt += f"\n\nTarget audience: {grade_level.replace('-', ' ').title()} school level"
-            
-            # Add tone guidance
-            prompt += f"\nTone: {tone.replace('-', ' ').title()}"
-            
-            # Add length guidance
-            length_guidance = {
-                'short': 'Keep the response concise (1-2 sentences)',
-                'medium': 'Provide a moderate length response (3-5 sentences)',
-                'long': 'Provide a detailed response (6+ sentences)'
-            }
-            prompt += f"\nLength: {length_guidance.get(response_length, 'Provide a moderate length response')}"
+            # Add focus areas to the prompt if no custom instructions are provided
+            if not custom_instructions:
+                if 'strengths' in focus_areas:
+                    prompt += "\n1. Highlight student strengths and achievements"
+                if 'improvements' in focus_areas:
+                    prompt += "\n2. Address areas for improvement constructively"
+                if 'growth' in focus_areas:
+                    prompt += "\n3. Use growth mindset language"
+                if 'specific' in focus_areas:
+                    prompt += "\n4. Include specific examples and observations"
+                if 'next-steps' in focus_areas:
+                    prompt += "\n5. Suggest clear next steps or goals"
+                
+                # Add grade level context
+                prompt += f"\n\nTarget audience: {grade_level.replace('-', ' ').title()} school level"
+                
+                # Add tone guidance
+                prompt += f"\nTone: {tone.replace('-', ' ').title()}"
+                
+                # Add length guidance
+                length_guidance = {
+                    'short': 'Keep the response concise (1-2 sentences)',
+                    'medium': 'Provide a moderate length response (3-5 sentences)',
+                    'long': 'Provide a detailed response (6+ sentences)'
+                }
+                prompt += f"\nLength: {length_guidance.get(response_length, 'Provide a moderate length response')}"
+            else:
+                # Use custom instructions if provided
+                prompt += f"\n{custom_instructions}"
+                
+                # Still include grade level, tone, and length as context even with custom instructions
+                prompt += f"\n\nTarget audience: {grade_level.replace('-', ' ').title()} school level"
+                prompt += f"\nTone: {tone.replace('-', ' ').title()}"
+                
+                length_guidance = {
+                    'short': 'Keep the response concise (1-2 sentences)',
+                    'medium': 'Provide a moderate length response (3-5 sentences)',
+                    'long': 'Provide a detailed response (6+ sentences)'
+                }
+                prompt += f"\nLength: {length_guidance.get(response_length, 'Provide a moderate length response')}"
             
             # Add the original feedback
             prompt += f"""
