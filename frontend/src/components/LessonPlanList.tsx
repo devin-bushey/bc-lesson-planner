@@ -67,9 +67,10 @@ const LessonPlanList: React.FC = () => {
                 const sortedPlans = sortPlans(plans, sortBy, sortDirection);
                 setLessonPlans(sortedPlans);
                 setFilteredPlans(sortedPlans);
+                setError('Failed to fetch lesson plans - try to sign out and sign back in');
                 setLoading(false);
             } catch (err) {
-                setError('Failed to fetch lesson plans');
+                setError('Failed to fetch lesson plans - try to sign out and sign back in');
                 setLoading(false);
             }
         };

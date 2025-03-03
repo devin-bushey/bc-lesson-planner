@@ -51,7 +51,7 @@ const ReportCardFeedback: React.FC = () => {
             const refined = await api.refineReportCardFeedback(originalFeedback, optionsToSend);
             setRefinedFeedback(refined);
         } catch (err) {
-            setError('Failed to refine feedback. Please try again.');
+            setError('Failed to refine feedback. Please try again. Or try to sign out and sing back in');
             console.error('Refinement error:', err);
         } finally {
             setIsRefining(false);
