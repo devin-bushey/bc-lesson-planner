@@ -16,8 +16,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 audience: auth0Config.audience,
                 scope: auth0Config.scope,
             }}
+            cacheLocation="localstorage"
+            useRefreshTokens={true}
         >
             {children}
         </Auth0Provider>
     );
-}; 
+};

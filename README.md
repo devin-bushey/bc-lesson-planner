@@ -52,6 +52,12 @@ docker compose up -d
 
 ### Running the Backend
 
+On a mac:
+```sh
+brew install python
+python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+```
+
 ```sh
 cd backend
 flask --app app/app.py --debug run

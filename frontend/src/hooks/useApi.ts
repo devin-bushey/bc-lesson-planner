@@ -4,7 +4,7 @@ import { useUserProfile } from './useUserProfile';
 import { useMemo } from 'react';
 
 export const useApi = () => {
-    const { getAccessTokenSilently } = useAuth0();
+    const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
     const { userProfile } = useUserProfile();
     
     const api = useMemo(() => {
@@ -20,10 +20,24 @@ export const useApi = () => {
                 return token;
             } catch (error) {
                 console.error('Error getting access token:', error);
+                
+                // Handle session timeout/expiration errors
+                if (
+                    error instanceof Error && 
+                    (error.message.includes('login_required') || 
+                     error.message.includes('expired') ||
+                     error.message.includes('Invalid token'))
+                ) {
+                    console.log('Auth session expired, redirecting to login...');
+                    loginWithRedirect({
+                        appState: { returnTo: window.location.pathname }
+                    });
+                }
+                
                 throw error;
             }
         }, userProfile || undefined);
-    }, [getAccessTokenSilently, userProfile]);
+    }, [getAccessTokenSilently, loginWithRedirect, userProfile]);
 
     return api;
-}; 
+};

@@ -54,15 +54,15 @@ class ReportFeedbackService:
             # Add focus areas to the prompt if no custom instructions are provided
             if not custom_instructions:
                 if 'strengths' in focus_areas:
-                    prompt += "\n1. Highlight student strengths and achievements"
+                    prompt += "\nHighlight student strengths and achievements"
                 if 'improvements' in focus_areas:
-                    prompt += "\n2. Address areas for improvement constructively"
+                    prompt += "\nAddress areas for improvement constructively"
                 if 'growth' in focus_areas:
-                    prompt += "\n3. Use growth mindset language"
+                    prompt += "\nUse growth mindset language"
                 if 'specific' in focus_areas:
-                    prompt += "\n4. Include specific examples and observations"
+                    prompt += "\nInclude specific examples and observations"
                 if 'next-steps' in focus_areas:
-                    prompt += "\n5. Suggest clear next steps or goals"
+                    prompt += "\nSuggest clear next steps or goals"
                 
                 # Add grade level context
                 prompt += f"\n\nTarget audience: {grade_level.replace('-', ' ').title()} school level"
@@ -83,7 +83,6 @@ class ReportFeedbackService:
                 
                 # Still include grade level, tone, and length as context even with custom instructions
                 prompt += f"\n\nTarget audience: {grade_level.replace('-', ' ').title()} school level"
-                prompt += f"\nTone: {tone.replace('-', ' ').title()}"
                 
                 length_guidance = {
                     'short': 'Keep the response concise (1-2 sentences)',

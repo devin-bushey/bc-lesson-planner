@@ -1,7 +1,7 @@
 load_dotenv
 requests
 ipykernel
-openai>=1.12.0
+openai
 pydantic
 flask
 flask-cors
