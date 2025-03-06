@@ -11,7 +11,7 @@ load_dotenv()
 client = OpenAI()
 
 # Get database path from environment variable or use default
-LANCEDB_PATH = os.getenv("LANCEDB_PATH", "data/lancedb")
+LANCEDB_PATH = "vectordb/data/lancedb"
 
 # Initialize LanceDB connection
 @st.cache_resource
@@ -198,4 +198,4 @@ if prompt := st.chat_input("Ask a question"):
 # USAGE: Chatbot
 # --------------------------------------------------------------
 
-# $ streamlit run chat.py 
+# $ streamlit run ./vectordb/chat.py 

@@ -11,7 +11,7 @@ def run_embedding_command(url: str, name: str, table: str) -> bool:
     """Run embedding command for a PDF URL."""
     command = [
         sys.executable, 
-        "embedding.py",
+        "./vectordb/embedding.py",
         url,
         "--name", name,
         "--table", table,

@@ -23,7 +23,7 @@ MAX_TOKENS = 8191
 embedding_func = get_registry().get("openai").create(name="text-embedding-3-large")
 
 # Get database path from environment variable or use default
-LANCEDB_PATH = os.getenv("LANCEDB_PATH", "data/lancedb")
+LANCEDB_PATH = "vectordb/data/lancedb"
 
 class ChunkMetadata(LanceModel):
     """Metadata schema for curriculum chunks"""

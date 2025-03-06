@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get database path from environment variable or use default
-LANCEDB_PATH = os.getenv("LANCEDB_PATH", "database/vectordb/data/lancedb")
+LANCEDB_PATH = os.getenv("LANCEDB_PATH", "../database/vectordb/data/lancedb")
 
 class DatabaseManager:
     def __init__(self):

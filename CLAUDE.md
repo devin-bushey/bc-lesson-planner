@@ -5,7 +5,7 @@
 - **Frontend Build**: `cd frontend && npm run build`
 - **Frontend Lint**: `cd frontend && npm run lint`
 - **Backend Dev**: `cd backend && flask --app app/app.py --debug run`
-- **Vector DB Process**: `cd backend/database/vectordb && python process_curriculum.py`
+- **Vector DB Process**: `cd database && python3 ./vectordb/process_curriculum.py`
 - **Start All Services**: `docker compose up -d`
 
 ## Code Style Guidelines

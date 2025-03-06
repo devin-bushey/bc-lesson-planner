@@ -1,11 +1,10 @@
-load_dotenv
+python-dotenv
 requests
 ipykernel
 openai
 pydantic
 flask
 flask-cors
-python-dotenv
 psycopg2-binary
 lancedb
 tiktoken

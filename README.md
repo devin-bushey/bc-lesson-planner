@@ -36,10 +36,9 @@ cd bc-lesson-planner
      - Allowed Web Origins: `http://localhost:5173`
    - Note down your Auth0 Domain, Client ID, and Client Secret
 
-3. Copy the `.env.example` file to a new file called `.env` in the root, backend, and frontend directories:
+3. Copy the `.env.example` file to a new file called `.env` in the root and frontend directories:
 ```sh
 cp .env.example .env
-cp .env.example ./backend/.env
 cp ./frontend/.env.example ./frontend/.env
 ```
 
@@ -55,7 +54,9 @@ docker compose up -d
 On a mac:
 ```sh
 brew install python
-python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+cd backend
+python3 -m venv .venv && source .venv/bin/activate 
+pip install -r requirements.txt
 ```
 
 ```sh
@@ -73,15 +74,17 @@ npm run dev
 ### Loading the Vector Database with BC Curriculum Data
 
 ```sh
-cd backend/database/vectordb
-python process_curriculum.py
+cd database
+python3 -m venv .venv && source .venv/bin/activate 
+pip install -r requirements.txt
+python3 process_curriculum.py
 ```
 
 ### Testing the Vector Database Data
 
 ```sh
-cd backend/database/vectordb
-streamlit run chat.py
+cd database
+streamlit run ./vectordb/chat.py 
 ```
 
 ### Environment Variables

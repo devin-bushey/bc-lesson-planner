@@ -64,7 +64,7 @@ def get_user_from_token(token):
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse user profile from header: {user_profile_header}")
         else:
-            logger.warning("No X-User-Profile header found in request")
+            logger.debug("No X-User-Profile header found in request")
             
         return unverified_claims
     except Exception as e:
@@ -150,8 +150,6 @@ def init_routes(app):
     @requires_auth
     def get_lesson_plans():
         try:
-            print('request.auth_user', request.auth_user)
-            print('request', request)
             # Get or create user
             user_id = user_service.get_or_create_user(request.auth_user)
             

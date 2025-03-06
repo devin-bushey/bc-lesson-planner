@@ -5,7 +5,7 @@ from utils.logger import setup_logger
 from typing import Dict, Any, List, Optional
 
 # Load environment variables
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv()
 
 # Set up logging
 logger = setup_logger()

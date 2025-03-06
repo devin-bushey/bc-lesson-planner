@@ -3,7 +3,6 @@ import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 import { LoginButton } from './components/Auth/LoginButton';
 import { LogoutButton } from './components/Auth/LogoutButton';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
-import { SessionMonitor } from './components/Auth/SessionMonitor';
 import LessonPlanForm from './components/LessonPlanForm';
 import LessonPlanDisplay from './components/LessonPlanDisplay';
 import LessonPlanList from './components/LessonPlanList';
@@ -172,9 +171,6 @@ const AppContent = () => {
       
       {/* Feedback Widget - only shown when authenticated */}
       {isAuthenticated && <FeedbackWidget />}
-      
-      {/* Session monitoring - checks for expired tokens */}
-      <SessionMonitor />
     </div>
   );
 };
@@ -187,7 +183,7 @@ function App() {
       authorizationParams={{
         redirect_uri: `${window.location.origin}`,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email',
+        scope: 'openid profile email offline_access',
         returnTo: window.location.origin + '/login'
       }}
       useRefreshTokens={true}

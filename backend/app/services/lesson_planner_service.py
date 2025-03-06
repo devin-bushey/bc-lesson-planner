@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from datetime import datetime, timezone
 import json
 from typing import Dict, List
 from database.db_manager import DatabaseManager
@@ -10,7 +9,7 @@ from .prompt_chains.lesson_plan_chain import LessonPlanChain
 from .integrations.educational_apis import YouTubeEducationalAPI
 
 # Load environment variables
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Set up logging
@@ -40,18 +39,26 @@ class LessonPlannerAgent:
         return context
 
     async def _get_curriculum_context(self, query: str, num_results: int = 5) -> str:
-        search_query = await self.generate_search_query(query)
-        results = self.db_manager.curriculum_table.search(query=search_query).limit(num_results)
-        df = results.to_pandas()
-        
-        contexts = []
-        for _, row in df.iterrows():
-            text = row['text']
-            metadata = row['metadata']
-            source = f"\nSource: {metadata.get('filename', 'Unknown')}"
-            contexts.append(f"{text}{source}")
+        if self.db_manager.curriculum_table is None:
+            logger.warning("Curriculum table not available, returning empty context")
+            return ""
             
-        return "\n\n".join(contexts)
+        try:
+            search_query = await self.generate_search_query(query)
+            results = self.db_manager.curriculum_table.search(query=search_query).limit(num_results)
+            df = results.to_pandas()
+            
+            contexts = []
+            for _, row in df.iterrows():
+                text = row['text']
+                metadata = row['metadata']
+                source = f"\nSource: {metadata.get('filename', 'Unknown')}"
+                contexts.append(f"{text}{source}")
+                
+            return "\n\n".join(contexts)
+        except Exception as e:
+            logger.error(f"Error getting curriculum context: {str(e)}")
+            return ""
     
     async def generate_search_query(self, context: str) -> str:
         response = openai.chat.completions.create(
