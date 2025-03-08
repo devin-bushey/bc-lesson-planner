@@ -34,8 +34,15 @@ export interface AppFeedback {
 }
 
 export const createApiClient = (getToken: () => Promise<string>, userProfile?: UserProfile) => {
+    let isRedirecting = false;
+
     const getAuthHeaders = async () => {
         try {
+            // If already redirecting, don't try to get a new token
+            if (isRedirecting) {
+                throw new Error('Authentication in progress');
+            }
+
             const token = await getToken();
             console.debug('Got token for API request');
             
@@ -53,31 +60,34 @@ export const createApiClient = (getToken: () => Promise<string>, userProfile?: U
             };
         } catch (error) {
             console.error('Error getting auth headers:', error);
+            isRedirecting = true;
+            throw error;
+        }
+    };
+
+    // Add error handling wrapper for API calls
+    const handleApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
+        try {
+            return await apiCall();
+        } catch (error) {
+            if (error instanceof Error && error.message === 'connection already closed') {
+                console.debug('Connection closed, authentication may be in progress');
+                // Return a rejected promise that will be handled by the UI
+                return Promise.reject(new Error('Authentication required'));
+            }
             throw error;
         }
     };
 
     return {
-        getAllLessonPlans: async (): Promise<LessonPlan[]> => {
-            try {
-                const headers = await getAuthHeaders();
-                console.debug('Making request to /lesson-plans');
-                const response = await fetch(`${API_BASE_URL}/lesson-plans`, {
-                    headers
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('Failed to fetch lesson plans:', errorData);
-                    throw new Error(errorData.message || 'Failed to fetch lesson plans');
-                }
-
-                return response.json();
-            } catch (error) {
-                console.error('Error in getAllLessonPlans:', error);
-                throw error;
-            }
-        },
+        getAllLessonPlans: () => handleApiCall(async () => {
+            const headers = await getAuthHeaders();
+            const response = await fetch(`${API_BASE_URL}/lesson-plans`, {
+                headers
+            });
+            if (!response.ok) throw new Error('Failed to fetch lesson plans');
+            return response.json();
+        }),
 
         getLessonPlan: async (id: number): Promise<LessonPlan> => {
             try {

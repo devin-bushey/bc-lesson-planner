@@ -1,11 +1,24 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { createApiClient } from '../services/lessonPlanService';
 import { useUserProfile } from './useUserProfile';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 export const useApi = () => {
-    const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
+    const { getAccessTokenSilently, loginWithRedirect, isAuthenticated } = useAuth0();
     const { userProfile } = useUserProfile();
+    
+    // Handle initial authentication check
+    useEffect(() => {
+        if (!isAuthenticated) {
+            localStorage.clear();
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/login') {
+                loginWithRedirect({
+                    appState: { returnTo: currentPath }
+                });
+            }
+        }
+    }, [isAuthenticated, loginWithRedirect]);
     
     const api = useMemo(() => {
         return createApiClient(async () => {
@@ -13,7 +26,7 @@ export const useApi = () => {
                 const token = await getAccessTokenSilently({
                     authorizationParams: {
                         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-                        scope: 'openid profile email offline_access'
+                        scope: 'openid profile email'
                     }
                 });
                 console.debug('Token retrieved successfully');
@@ -21,24 +34,22 @@ export const useApi = () => {
             } catch (error) {
                 console.error('Error getting access token:', error);
                 
-                // Handle session timeout/expiration errors
-                if (
-                    error instanceof Error && 
-                    (error.message.includes('login_required') || 
-                     error.message.includes('expired') ||
-                     error.message.includes('Invalid token') ||
-                     error.message.includes('Missing Refresh Token'))
-                ) {
-                    console.log('Auth session expired or invalid, redirecting to login...');
-                    loginWithRedirect({
-                        appState: { returnTo: "/" }
-                    });
-                }
                 
-                throw error;
+                // clear local storage
+                localStorage.clear();
+                
+                // Handle any auth error by redirecting to login
+                console.log('Auth error, redirecting to login...');
+                const currentPath = window.location.pathname;
+                loginWithRedirect({
+                    appState: { returnTo: currentPath }
+                });
+                
+                // Return a rejected promise to prevent further API calls
+                return Promise.reject(new Error('Authentication required'));
             }
         }, userProfile || undefined);
-    }, [getAccessTokenSilently, loginWithRedirect, userProfile]);
+    }, [getAccessTokenSilently, loginWithRedirect, userProfile, isAuthenticated]);
 
     return api;
 };

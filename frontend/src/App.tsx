@@ -183,10 +183,8 @@ function App() {
       authorizationParams={{
         redirect_uri: `${window.location.origin}`,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email offline_access',
-        returnTo: window.location.origin + '/login'
+        scope: 'openid profile email'
       }}
-      useRefreshTokens={true}
       cacheLocation="localstorage"
     >
       <Router>
