@@ -26,9 +26,10 @@ export const useApi = () => {
                     error instanceof Error && 
                     (error.message.includes('login_required') || 
                      error.message.includes('expired') ||
-                     error.message.includes('Invalid token'))
+                     error.message.includes('Invalid token') ||
+                     error.message.includes('Missing Refresh Token'))
                 ) {
-                    console.log('Auth session expired, redirecting to login...');
+                    console.log('Auth session expired or invalid, redirecting to login...');
                     loginWithRedirect({
                         appState: { returnTo: window.location.pathname }
                     });
