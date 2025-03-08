@@ -31,7 +31,7 @@ export const useApi = () => {
                 ) {
                     console.log('Auth session expired or invalid, redirecting to login...');
                     loginWithRedirect({
-                        appState: { returnTo: window.location.pathname }
+                        appState: { returnTo: "/" }
                     });
                 }
                 
