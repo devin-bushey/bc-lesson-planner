@@ -41,7 +41,7 @@ def get_core_subject_pdfs() -> List[Dict[str, str]]:
             "subject": "arts-education"
         },
         {
-            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/mathematics/en_mathematics_k-9_elab.pdf",
+            "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/mathematics/en_mathematics_k-9.pdf",
             "subject": "mathematics" 
         },
         {

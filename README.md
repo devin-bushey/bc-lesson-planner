@@ -87,6 +87,26 @@ cd database
 streamlit run ./vectordb/chat.py 
 ```
 
+SCP vectordb to render:
+
+Add ssh key: https://render.com/docs/ssh-keys
+Scp zip file to disk: https://render.com/docs/disks#scp
+
+```sh
+cd database/vectordb/data/lancedb
+zip -r bc_curriculum.zip .
+
+# Copying a file from your local machine to your service
+scp -s bc_curriculum.zip YOUR_SERVICE@ssh.YOUR_REGION.render.com:/app/database/vectordb/data/lancedb
+```
+
+On render shell:
+```sh
+cd /app/database/vectordb/data/lancedb
+sudo apt-get install unzip
+unzip bc_curriculum.zip
+```
+
 ### Environment Variables
 
 The application uses several environment variables for configuration:

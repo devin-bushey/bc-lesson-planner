@@ -90,12 +90,16 @@ class MarkdownProcessor:
         processed_sections = []
         
         if sections[0].strip():
+            print("Found content before first Area Learning marker")
             processed_sections.append(sections[0].strip())
         
-        for section in sections[1:]:
+        for i, section in enumerate(sections[1:], 1):
             if section.strip():
                 processed_sections.append(f"## Area of Learning:{section}")
+            else:
+                print(f"Empty section found at position {i}")
         
+        print(f"Total sections found: {len(processed_sections)}")
         return processed_sections
 
 class DocumentProcessor:
@@ -138,8 +142,6 @@ class DocumentProcessor:
                 print(f"Processed and saved section {batch_number} with grade level: {metadata['grade_level']}, subject area: {metadata['subject_area']}")
                 return Section(content=cleaned_content, metadata=metadata)
             
-            print(f"Warning: Missing metadata for section {batch_number}")
-            print("Content preview:", cleaned_content[:200])
             return None
             
         except Exception as e:
@@ -217,11 +219,16 @@ class DocumentProcessor:
     def chunk_document(self, url: str) -> List[dict]:
         """Process and chunk a document from the given URL."""
         result = self.converter.convert(url)
-        markdown = result.document.export_to_markdown()
+        markdown = result.document.export_to_markdown()        
+        print("\nSplitting into sections...")
         sections = MarkdownProcessor.split_by_area_of_learning(markdown)
+        print(f"Found {len(sections)} sections")
+        for i, section in enumerate(sections):
+            print(f"\nSection {i+1} preview ({len(section)} chars):", section[:200])
+        
         processed_sections = []
 
-        print(f"Found {len(sections)} Areas of Learning to process")
+        print(f"\nProcessing {len(sections)} Areas of Learning...")
 
         with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_section = {
@@ -235,11 +242,14 @@ class DocumentProcessor:
                     result = future.result()
                     if result:
                         processed_sections.append(result)
+                        print(f"Successfully processed section {section_idx + 1}")
                     else:
-                        print(f"Section {section_idx + 1} processing failed")
+                        print(f"Section {section_idx + 1} processing failed - no valid metadata found")
                 except Exception as e:
                     print(f"Section {section_idx + 1} generated an exception: {str(e)}")
+                    traceback.print_exc()
 
+        print(f"\nSuccessfully processed {len(processed_sections)} sections out of {len(sections)} total")
         return self._process_sections_to_chunks(processed_sections)
 
     def _process_sections_to_chunks(self, processed_sections: List[Section]) -> List[dict]:
@@ -260,8 +270,14 @@ class DocumentProcessor:
                 table.add(chunks)
                 all_chunks.extend(chunks)
                 print(f"Added {len(chunks)} chunks to database from {file.name}")
+                # Delete the temporary file after successful processing
+                file.unlink()
+                print(f"Deleted temporary file: {file.name}")
             else:
                 print(f"No chunks processed from {file.name}")
+                # Delete empty/failed files as well
+                file.unlink()
+                print(f"Deleted empty temporary file: {file.name}")
 
         return all_chunks
 
