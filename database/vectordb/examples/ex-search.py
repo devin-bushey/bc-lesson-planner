@@ -12,7 +12,7 @@ db = lancedb.connect(uri)
 # Load the table
 # --------------------------------------------------------------
 
-table = db.open_table("bc_curriculum_website")
+table = db.open_table("testing123")
 
 # --------------------------------------------------------------
 # Load the table
@@ -27,7 +27,7 @@ table.count_rows()
 # Search the table
 # --------------------------------------------------------------
 
-result = table.search(query="grade 1 art").limit(5)
+result = table.search(query="kindergarten big ideas").limit(5)
 result.to_pandas()
 
 first_row = result.to_pandas().iloc[1]

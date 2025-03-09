@@ -3,6 +3,7 @@ import lancedb
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
+import re 
 
 # Load environment variables
 load_dotenv()
@@ -26,7 +27,7 @@ def init_db():
         os.makedirs(os.path.dirname(LANCEDB_PATH), exist_ok=True)
         
         db = lancedb.connect(LANCEDB_PATH)
-        return db.open_table("bc_curriculum_website")
+        return db.open_table("testing123")
     except Exception as e:
         st.error(f"Error connecting to database: {str(e)}")
         return None
@@ -52,21 +53,25 @@ def get_context(query: str, table, num_results: int = 3) -> str:
 
         for _, row in results.iterrows():
             # Extract metadata
-            filename = row["metadata"]["filename"]
-            title = row["metadata"]["title"]
+            metadata = row.get("metadata", {})
+            grade_level = metadata.get("grade_level", "Unknown Grade")
+            subject_area = metadata.get("subject_area", "Unknown Subject")
+            
+            # Format the content block
+            content_block = {
+                "text": row["text"].strip(),
+                "metadata": {
+                    "grade_level": grade_level,
+                    "subject_area": subject_area
+                }
+            }
+            
+            # Create formatted text with metadata
+            formatted_text = f"{content_block['text']}\n---\nGrade Level: {content_block['metadata']['grade_level']}\nSubject Area: {content_block['metadata']['subject_area']}"
+            contexts.append(formatted_text)
 
-            # Build source citation
-            source_parts = []
-            if filename:
-                source_parts.append(filename)
-
-            source = f"\nSource: {' - '.join(source_parts)}"
-            if title:
-                source += f"\nTitle: {title}"
-
-            contexts.append(f"{row['text']}{source}")
-
-        return "\n\n".join(contexts)
+        # Join with clear separation
+        return "\n\n---\n\n".join(contexts)
     except Exception as e:
         return f"Error searching database: {str(e)}"
 
@@ -119,6 +124,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+
 # Chat input
 if prompt := st.chat_input("Ask a question"):
     # Display user message
@@ -159,31 +165,44 @@ if prompt := st.chat_input("Ask a question"):
         )
 
         st.write("Found relevant sections:")
-        for chunk in context.split("\n\n"):
-            # Split into text and metadata parts
-            parts = chunk.split("\n")
-            text = parts[0]
-            metadata = {
-                line.split(": ")[0]: line.split(": ")[1]
-                for line in parts[1:]
-                if ": " in line
-            }
 
-            source = metadata.get("Source", "Unknown source")
-            title = metadata.get("Title", "Untitled section")
+        print("context: ", context)
+
+        
+        for chunk in context.split("\n\n---\n\n"):
+            # Split into text and metadata parts
+            parts = chunk.split("\n---\n")
+            
+            if len(parts) != 2:
+                continue
+                
+            text, metadata = parts
+            
+            # Extract grade level and subject area from metadata
+            grade_match = re.search(r"Grade Level: (.+)", metadata)
+            subject_match = re.search(r"Subject Area: (.+)", metadata)
+            section_type_match = re.search(r"Section Type: (.+)", metadata)
+            
+            grade_level = grade_match.group(1) if grade_match else "Unknown Grade"
+            subject_area = subject_match.group(1) if subject_match else "Unknown Subject"
+            section_type = section_type_match.group(1) if section_type_match else "Unknown Section Type"
 
             st.markdown(
                 f"""
-                <div class="search-result">
+                <div class="search-result" style="color: black;">
                     <details>
-                        <summary>{source}</summary>
-                        <div class="metadata">Section: {title}</div>
-                        <div style="margin-top: 8px;">{text}</div>
+                        <summary>Curriculum Section</summary>
+                        <div class="metadata">
+                            <p>Grade Level: {grade_level}</p>
+                            <p>Subject Area: {subject_area}</p>
+                            <p>Section Type: {section_type}</p>
+                        </div>
                     </details>
                 </div>
             """,
                 unsafe_allow_html=True,
             )
+
 
     # Display assistant response first
     with st.chat_message("assistant"):
