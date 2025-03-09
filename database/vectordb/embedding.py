@@ -1,184 +1,289 @@
 import argparse
 import os
+from pathlib import Path
+import re
 import sys
 import traceback
-from typing import List
+from typing import Dict, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 
 import lancedb
-from docling.chunking import HybridChunker
-from docling.document_converter import DocumentConverter
 from dotenv import load_dotenv
 from lancedb.embeddings import get_registry
 from lancedb.pydantic import LanceModel, Vector
 from openai import OpenAI
+from docling.chunking import HybridChunker
+from docling.document_converter import DocumentConverter
 from utils.tokenizer import OpenAITokenizerWrapper
 
-load_dotenv()
-
-client = OpenAI()
-
-tokenizer = OpenAITokenizerWrapper()
+# Configuration Constants
 MAX_TOKENS = 8191
-
-embedding_func = get_registry().get("openai").create(name="text-embedding-3-large")
-
-# Get database path from environment variable or use default
+CURRENT_DIR = Path(__file__).parent
 LANCEDB_PATH = "vectordb/data/lancedb"
+TABLE_NAME = "bc_curriculum_website"
+
+# Initialize global services
+load_dotenv()
+client = OpenAI()
+tokenizer = OpenAITokenizerWrapper()
+embedding_func = get_registry().get("openai").create(name="text-embedding-3-small")
+
+# Data Models
+@dataclass
+class Section:
+    content: str
+    metadata: Dict[str, str]
 
 class ChunkMetadata(LanceModel):
-    """Metadata schema for curriculum chunks"""
-    filename: str | None
-    grade: str | None    # Grade level (e.g. "Kindergarten", "Grade 3")
-    page_numbers: List[int] | None
-    parent_section: str | None  # For hierarchical relationships in elaborations
-    section_type: str | None  # e.g. "Big Ideas", "Curricular Competencies", "Content", "Elaborations"
-    subject: str | None  # Area of Learning (e.g. "ARTS EDUCATION")
-    title: str | None
+    """
+    You must order the fields in alphabetical order.
+    This is a requirement of the Pydantic implementation.
+    """
+    grade_level: str | None
+    section_type: str | None
+    subject_area: str | None
 
-class CurriculumChunks(LanceModel):
-    """Schema for curriculum chunks with embeddings"""
+class Chunks(LanceModel):
+    """Schema for document chunks with embeddings."""
     text: str = embedding_func.SourceField()
     vector: Vector(embedding_func.ndims()) = embedding_func.VectorField()  # type: ignore
     metadata: ChunkMetadata
 
-def extract_grade_and_subject(text: str) -> tuple[str | None, str | None]:
-    """Extract grade level and subject from text using common patterns."""
-    grade = None
-    subject = None
+class MarkdownProcessor:
+    """Handles markdown document processing and metadata extraction."""
     
-    # Look for grade level patterns
-    if "Kindergarten" in text:
-        grade = "Kindergarten"
-    elif "Grade" in text:
-        # Extract grade number (handles "Grade 1" through "Grade 12")
-        import re
-        grade_match = re.search(r"Grade (\d+)", text)
-        if grade_match:
-            grade = f"Grade {grade_match.group(1)}"
-    
-    # Look for subject/area of learning
-    common_subjects = [
-        "ARTS EDUCATION", "SCIENCE", "MATHEMATICS",
-        "ENGLISH LANGUAGE ARTS", "SOCIAL STUDIES",
-        "PHYSICAL AND HEALTH EDUCATION"
-    ]
-    for subj in common_subjects:
-        if subj in text.upper():
-            subject = subj
-            break
-    
-    return grade, subject
-
-def identify_section_type(text: str, headings: List[str]) -> str:
-    """Identify the type of curriculum section based on content and headings."""
-    text_upper = text.upper()
-    if "BIG IDEAS" in text_upper:
-        return "Big Ideas"
-    elif "CURRICULAR COMPETENCIES" in text_upper:
-        return "Curricular Competencies"
-    elif "CONTENT" in text_upper:
-        return "Content"
-    elif "ELABORATIONS" in text_upper:
-        return "Elaborations"
-    
-    # Check headings if no clear section type found
-    if headings:
-        heading_upper = headings[0].upper()
-        if "ELABORATIONS" in heading_upper:
-            return "Elaborations"
-    
-    return "General"
-
-def process_pdf(url: str, subject_name: str, table_name: str) -> bool:
-    try:
-        print(f"\nStarting to process PDF from {url}")
+    @staticmethod
+    def extract_metadata_from_markdown(markdown_text: str) -> Dict[str, str | None]:
+        """Extract metadata from the markdown content."""
+        metadata = {
+            "grade_level": None,
+            "subject_area": None
+        }
         
-        # Initialize document converter and process PDF
-        print("Converting PDF...")
-        converter = DocumentConverter()
-        result = converter.convert(url)
-        print("PDF conversion completed")
+        metadata_match = re.search(r"---\s*Metadata:(.*?)---", markdown_text, re.DOTALL)
+        if metadata_match:
+            metadata_text = metadata_match.group(1)
+            
+            grade_level_match = re.search(r"metadata_grade_level:\s*(.*?)(?:\n|$)", metadata_text)
+            if grade_level_match:
+                metadata["grade_level"] = grade_level_match.group(1).strip()
+                
+            subject_area_match = re.search(r"metadata_subject_area:\s*(.*?)(?:\n|$)", metadata_text)
+            if subject_area_match:
+                metadata["subject_area"] = subject_area_match.group(1).strip()
+        
+        return metadata
 
-        # Initialize chunker with smaller max tokens to better preserve curriculum structure
-        print("Chunking document...")
-        chunker = HybridChunker(
+    @staticmethod
+    def clean_text_from_metadata(text: str) -> str:
+        """Remove the metadata section from the text content."""
+        parts = text.split('---')
+        if len(parts) >= 3:
+            return '---'.join(parts[2:]).strip()
+        return text.strip()
+
+    @staticmethod
+    def split_by_area_of_learning(markdown_content: str) -> List[str]:
+        """Split the content by Area of Learning sections."""
+        sections = markdown_content.split("## Area of Learning:")
+        processed_sections = []
+        
+        if sections[0].strip():
+            processed_sections.append(sections[0].strip())
+        
+        for section in sections[1:]:
+            if section.strip():
+                processed_sections.append(f"## Area of Learning:{section}")
+        
+        return processed_sections
+
+class DocumentProcessor:
+    """Handles document processing and chunking."""
+    
+    def __init__(self):
+        self.converter = DocumentConverter()
+        self.chunker = HybridChunker(
             tokenizer=tokenizer,
-            max_tokens=MAX_TOKENS // 2,  # Smaller chunks for more precise retrieval
+            max_tokens=MAX_TOKENS // 4,
             merge_peers=True,
         )
 
-        # Chunk the document
-        chunks = list(chunker.chunk(dl_doc=result.document))
-        print(f"Document chunked into {len(chunks)} parts")
+    def process_markdown_batch(self, batch_content: str, batch_number: int, total_batches: int) -> Section | None:
+        """Process a batch of markdown content."""
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an assistant that helps structure educational curriculum content. Your task is to take markdown content and format it consistently and cleanly, optimizing for readability and proper markdown structure."
+                    },
+                    {
+                        "role": "user",
+                        "content": self._get_formatting_prompt(batch_content, batch_number, total_batches)
+                    }
+                ],
+                temperature=0.2,
+                max_tokens=4000
+            )
+            
+            processed_content = response.choices[0].message.content
+            metadata = MarkdownProcessor.extract_metadata_from_markdown(processed_content)
+            cleaned_content = MarkdownProcessor.clean_text_from_metadata(processed_content)
+            
+            if metadata["grade_level"] and metadata["subject_area"]:
+                self._save_processed_section(cleaned_content, metadata)
+                print(f"Processed and saved section {batch_number} with grade level: {metadata['grade_level']}, subject area: {metadata['subject_area']}")
+                return Section(content=cleaned_content, metadata=metadata)
+            
+            print(f"Warning: Missing metadata for section {batch_number}")
+            print("Content preview:", cleaned_content[:200])
+            return None
+            
+        except Exception as e:
+            print(f"Error processing batch {batch_number}: {str(e)}")
+            print("Content preview:", batch_content[:200])
+            return None
 
-        if len(chunks) > 0:
-            print("Processing chunks for embedding...")
+    def _get_formatting_prompt(self, content: str, batch_number: int, total_batches: int) -> str:
+        """Generate the formatting prompt for the AI model."""
+        return f"""
+        This is section {batch_number} of {total_batches} from a curriculum document. 
+        Please format this markdown following these strict rules:
+
+        1. Start with a metadata section in this exact format (no extra newlines). The grade level should not include the word Grade:
+        ---
+        Metadata:
+        metadata_grade_level: <grade level>
+        metadata_subject_area: <subject area>
+        ---
+
+        2. Format headers consistently:
+        - Main area of learning: Level 2 (##)
+        - Major sections (Big Ideas, Learning Standards): Level 3 (###)
+        - Subsections (Elaborations): Level 4 (####)
+
+        3. Format lists consistently:
+        - Use bullet points (-) for all lists
+        - Indent nested lists with 2 spaces
+        - Keep list items aligned and properly indented
+        - No extra newlines between list items
+
+        4. Format tables:
+        - Keep table headers and content aligned
+        - Use consistent column widths
+        - No extra spaces in cells
+
+        5. Content organization:
+        - One blank line between sections
+        - No multiple consecutive blank lines
+        - Consistent indentation throughout
+        - Remove any redundant or duplicate headers
+
+        Here's the section to process:
+
+        {content}
+        """
+
+    def _save_processed_section(self, content: str, metadata: Dict[str, str | None]) -> None:
+        """Save processed section to a file."""
+        os.makedirs(CURRENT_DIR / "temp", exist_ok=True)
+        filename = f"{metadata['grade_level'].replace(' ', '_')}-{metadata['subject_area'].replace(' ', '_')}.md"
+        with open(CURRENT_DIR / "temp" / filename, "w") as file:
+            file.write(content)
+
+    def chunk_document(self, url: str) -> List[dict]:
+        """Process and chunk a document from the given URL."""
+        result = self.converter.convert(url)
+        markdown = result.document.export_to_markdown()
+        sections = MarkdownProcessor.split_by_area_of_learning(markdown)
+        processed_sections = []
+
+        print(f"Found {len(sections)} Areas of Learning to process")
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_section = {
+                executor.submit(self.process_markdown_batch, section, i + 1, len(sections)): i 
+                for i, section in enumerate(sections)
+            }
+            
+            for future in as_completed(future_to_section):
+                section_idx = future_to_section[future]
+                try:
+                    result = future.result()
+                    if result:
+                        processed_sections.append(result)
+                    else:
+                        print(f"Section {section_idx + 1} processing failed")
+                except Exception as e:
+                    print(f"Section {section_idx + 1} generated an exception: {str(e)}")
+
+        return self._process_sections_to_chunks(processed_sections)
+
+    def _process_sections_to_chunks(self, processed_sections: List[Section]) -> List[dict]:
+        """Process sections into database chunks."""
+        db = lancedb.connect(LANCEDB_PATH)
+        
+        try:
+            table = db.create_table(TABLE_NAME, schema=Chunks)
+            print("Created new table")
+        except Exception:
+            table = db.open_table(TABLE_NAME)
+            print("Using existing table")
+
+        all_chunks = []
+        for file in (CURRENT_DIR / "temp").glob("*.md"):
+            chunks = self._process_file_to_chunks(file)
+            if chunks:
+                table.add(chunks)
+                all_chunks.extend(chunks)
+                print(f"Added {len(chunks)} chunks to database from {file.name}")
+            else:
+                print(f"No chunks processed from {file.name}")
+
+        return all_chunks
+
+    def _process_file_to_chunks(self, file: Path) -> List[dict]:
+        """Process a single file into chunks."""
+        conversion_result = self.converter.convert(file)
+        dl_doc = conversion_result.document
+        chunks = list(self.chunker.chunk(dl_doc=dl_doc))
+        print(f"Found {len(chunks)} chunks in {file.name}")
+        
+        processed_chunks = []
+        for chunk in chunks:
+            grade_level = file.stem.split("-")[0].replace("_", " ")
+            section_type = chunk.meta.headings[0] if chunk.meta and chunk.meta.headings else None
+            subject_area = file.stem.split("-")[1].replace("_", " ")
+
+            metadata = {
+                "grade_level": grade_level,
+                "section_type": section_type,
+                "subject_area": subject_area,
+            }
+
+            combined_text = f"{grade_level} {subject_area} {section_type}: \n{chunk.text}"
+            processed_chunks.append({
+                "text": combined_text,
+                "metadata": metadata
+            })
+            
+        return processed_chunks
+
+def process_pdf(url: str, subject: str) -> bool:
+    """Main function to process a PDF document."""
+    try:
+        print(f"\nStarting to process PDF from {url} for {subject}")
+        processor = DocumentProcessor()
+        chunks = processor.chunk_document(url)
+        
+        if chunks:
+            print(f"Document processed into {len(chunks)} chunks")
+            return True
         else:
             print("No chunks to add to database")
             return False
-        
-        # Connect to LanceDB using environment variable
-        print(f"Connecting to LanceDB at {LANCEDB_PATH}...")
-        
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(LANCEDB_PATH), exist_ok=True)
-        
-        db = lancedb.connect(LANCEDB_PATH)
-
-        # Create or get table
-        print(f"Creating/accessing table {table_name}...")
-        try:
-            table = db.create_table(table_name, schema=CurriculumChunks)
-            print("Created new table")
-        except Exception:
-            table = db.open_table(table_name)
-            print("Using existing table")
-
-        # Process chunks for embedding with enhanced metadata
-        print("Processing chunks for embedding...")
-        processed_chunks = []
-        current_section = None
-        
-        for chunk in chunks:
-            # Extract grade and subject if not already known
-            extracted_grade, extracted_subject = extract_grade_and_subject(chunk.text)
-            
-            # Identify section type
-            section_type = identify_section_type(chunk.text, chunk.meta.headings)
-            
-            # Update current section if this is a major section
-            if section_type in ["Big Ideas", "Curricular Competencies", "Content"]:
-                current_section = section_type
-            
-            processed_chunks.append({
-                "text": chunk.text,
-                "metadata": {
-                    "filename": subject_name,
-                    "grade": extracted_grade,
-                    "page_numbers": [
-                        page_no
-                        for page_no in sorted(
-                            set(
-                                prov.page_no
-                                for item in chunk.meta.doc_items
-                                for prov in item.prov
-                            )
-                        )
-                    ] or None,
-                    "parent_section": current_section if section_type == "Elaborations" else None,
-                    "section_type": section_type,
-                    "subject": extracted_subject or subject_name,
-                    "title": chunk.meta.headings[0] if chunk.meta.headings else None,
-                },
-            })
-
-        # Add chunks to table (this will automatically create embeddings)
-        print(f"Adding {len(processed_chunks)} chunks to database...")
-        table.add(processed_chunks)
-        print("Successfully added chunks to database")
-
-        return True
-
 
     except Exception as e:
         print(f"\nError details:")
@@ -189,16 +294,15 @@ def process_pdf(url: str, subject_name: str, table_name: str) -> bool:
         return False
 
 def main():
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="Process PDF and create embeddings")
     parser.add_argument("url", help="URL of the PDF to process")
-    parser.add_argument("--name", help="Subject name", required=True)
-    parser.add_argument("--table", help="Table name in LanceDB", required=True)
-    
+    parser.add_argument("subject", help="Name of the subject")
     args = parser.parse_args()
 
-    print(f"Processing {args.url} for {args.name} in table {args.table}")
+    print(f"Processing {args.url} for {args.subject}")
     
-    success = process_pdf(args.url, args.name, args.table)
+    success = process_pdf(args.url, args.subject)
     if success:
         print(f"Successfully processed {args.url}")
         sys.exit(0)

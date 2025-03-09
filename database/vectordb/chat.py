@@ -13,6 +13,7 @@ client = OpenAI()
 
 # Get database path from environment variable or use default
 LANCEDB_PATH = "vectordb/data/lancedb"
+TABLE_NAME = "bc_curriculum_website"
 
 # Initialize LanceDB connection
 @st.cache_resource
@@ -27,7 +28,7 @@ def init_db():
         os.makedirs(os.path.dirname(LANCEDB_PATH), exist_ok=True)
         
         db = lancedb.connect(LANCEDB_PATH)
-        return db.open_table("testing123")
+        return db.open_table(TABLE_NAME)
     except Exception as e:
         st.error(f"Error connecting to database: {str(e)}")
         return None
@@ -164,9 +165,7 @@ if prompt := st.chat_input("Ask a question"):
             unsafe_allow_html=True,
         )
 
-        st.write("Found relevant sections:")
-
-        print("context: ", context)
+        st.write("Found relevant sections used in the context for the search query:")
 
         
         for chunk in context.split("\n\n---\n\n"):
@@ -177,15 +176,17 @@ if prompt := st.chat_input("Ask a question"):
                 continue
                 
             text, metadata = parts
-            
+
+            print("text: ", text)
+            print("metadata: ", metadata)
             # Extract grade level and subject area from metadata
             grade_match = re.search(r"Grade Level: (.+)", metadata)
             subject_match = re.search(r"Subject Area: (.+)", metadata)
-            section_type_match = re.search(r"Section Type: (.+)", metadata)
             
             grade_level = grade_match.group(1) if grade_match else "Unknown Grade"
             subject_area = subject_match.group(1) if subject_match else "Unknown Subject"
-            section_type = section_type_match.group(1) if section_type_match else "Unknown Section Type"
+
+            text_preview = text[0:100]
 
             st.markdown(
                 f"""
@@ -195,7 +196,7 @@ if prompt := st.chat_input("Ask a question"):
                         <div class="metadata">
                             <p>Grade Level: {grade_level}</p>
                             <p>Subject Area: {subject_area}</p>
-                            <p>Section Type: {section_type}</p>
+                            <p>Section Type: {text_preview}</p>
                         </div>
                     </details>
                 </div>
@@ -208,6 +209,7 @@ if prompt := st.chat_input("Ask a question"):
     with st.chat_message("assistant"):
         # Get model response with streaming
         response = get_chat_response(st.session_state.messages, context)
+    
 
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})

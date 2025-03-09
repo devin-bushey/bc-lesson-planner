@@ -175,7 +175,6 @@ tokenizer = OpenAITokenizerWrapper()
 
 converter = DocumentConverter()
 result = converter.convert(test_pdf)
-# save_markdown = result.document.save_as_markdown(filename=CURRENT_DIR / "ex-md")
 
 # --------------------------------------------------------------
 # Preprocessing the markdown

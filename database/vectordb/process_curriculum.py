@@ -7,14 +7,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-def run_embedding_command(url: str, name: str, table: str) -> bool:
+def run_embedding_command(url: str, subject: str) -> bool:
     """Run embedding command for a PDF URL."""
     command = [
         sys.executable, 
         "./vectordb/embedding.py",
         url,
-        "--name", name,
-        "--table", table,
+        "--subject", subject
     ]
     
     try:
@@ -39,32 +38,31 @@ def get_core_subject_pdfs() -> List[Dict[str, str]]:
     return [
         {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/arts-education/en_arts-education_k-9_elab.pdf",
-            "name": "arts-education"
+            "subject": "arts-education"
         },
         {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca//files/curriculum/mathematics/en_mathematics_k-9_elab.pdf",
-            "name": "mathematics" 
+            "subject": "mathematics" 
         },
         {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/social-studies/en_social-studies_k-9_elab.pdf",
-            "name": "social-studies"
+            "subject": "social-studies"
         },
         {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/science/en_science_k-9_elab.pdf",
-            "name": "science"
+            "subject": "science"
         },
         {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/english-language-arts/en_english-language-arts_k-9_elab.pdf",
-            "name": "english-language-arts"
+            "subject": "english-language-arts"
         },
         {
             "url": "https://curriculum.gov.bc.ca/sites/curriculum.gov.bc.ca/files/curriculum/physical-health-education/en_physical-health-education_k-9_elab.pdf",
-            "name": "physical-health-education"
+            "subject": "physical-health-education"
         }
     ]
 
 def main():
-    table_name = "bc_curriculum_website"
     urls = get_core_subject_pdfs()
     
     total = len(urls)
@@ -74,7 +72,7 @@ def main():
     print(f"Processing {total} URLs")
     
     for item in urls:
-        if run_embedding_command(item["url"], item["name"], table_name):
+        if run_embedding_command(item["url"], item["subject"]):
             successful += 1
         else:
             failed += 1
