@@ -125,3 +125,5 @@ uv.lock
 
 # Exclude LanceDB database
 lancedb/
+
+temp/

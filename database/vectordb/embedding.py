@@ -101,13 +101,14 @@ class MarkdownProcessor:
 class DocumentProcessor:
     """Handles document processing and chunking."""
     
-    def __init__(self):
+    def __init__(self, subject: str):
         self.converter = DocumentConverter()
         self.chunker = HybridChunker(
             tokenizer=tokenizer,
             max_tokens=MAX_TOKENS // 4,
             merge_peers=True,
         )
+        self.subject = self._standardize_filename_component(subject)
 
     def process_markdown_batch(self, batch_content: str, batch_number: int, total_batches: int) -> Section | None:
         """Process a batch of markdown content."""
@@ -152,7 +153,11 @@ class DocumentProcessor:
         This is section {batch_number} of {total_batches} from a curriculum document. 
         Please format this markdown following these strict rules:
 
-        1. Start with a metadata section in this exact format (no extra newlines). The grade level should not include the word Grade:
+        1. Start with a metadata section in this exact format (no extra newlines). For the grade level:
+        - Use ONLY these exact values: Kindergarten, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+        - Do NOT include the word "Grade" in the value
+        - If multiple grades are mentioned, use the first/lowest grade
+        - If no specific grade is found, analyze the content to determine the most likely grade level
         ---
         Metadata:
         metadata_grade_level: <grade level>
@@ -187,11 +192,27 @@ class DocumentProcessor:
         """
 
     def _save_processed_section(self, content: str, metadata: Dict[str, str | None]) -> None:
-        """Save processed section to a file."""
+        """Save processed section to a file with standardized naming. Appends if file exists."""
         os.makedirs(CURRENT_DIR / "temp", exist_ok=True)
-        filename = f"{metadata['grade_level'].replace(' ', '_')}-{metadata['subject_area'].replace(' ', '_')}.md"
-        with open(CURRENT_DIR / "temp" / filename, "w") as file:
-            file.write(content)
+        
+        # Standardize grade level and use the standardized subject from initialization
+        grade_level = self._standardize_filename_component(metadata.get('grade_level', ''))
+        
+        # Create filename in format: {grade}-{subject}.md
+        filename = f"{grade_level}-{self.subject}.md"
+        filepath = CURRENT_DIR / "temp" / filename
+        
+        # If file exists, append content with a section separator
+        if filepath.exists():
+            with open(filepath, 'a') as file:
+                file.write("\n\n---\n\n")  # Add a clear section separator
+                file.write(content)
+            print(f"Appended content to existing file: {filename}")
+        else:
+            # Create new file if it doesn't exist
+            with open(filepath, 'w') as file:
+                file.write(content)
+            print(f"Created new file: {filename}")
 
     def chunk_document(self, url: str) -> List[dict]:
         """Process and chunk a document from the given URL."""
@@ -253,17 +274,28 @@ class DocumentProcessor:
         
         processed_chunks = []
         for chunk in chunks:
-            grade_level = file.stem.split("-")[0].replace("_", " ")
+            # Extract grade level from standardized filename
+            grade_str = file.stem.split("-")[0]
+            
+            # Convert grade level back to readable format
+            if grade_str == "kindergarten" or grade_str == "00":
+                grade_level = "Kindergarten"
+            else:
+                try:
+                    grade_level = str(int(grade_str))  # Remove leading zero
+                except ValueError:
+                    print(f"Warning: Invalid grade level '{grade_str}' in filename {file.name}")
+                    continue  # Skip this chunk if grade level is invalid
+                
             section_type = chunk.meta.headings[0] if chunk.meta and chunk.meta.headings else None
-            subject_area = file.stem.split("-")[1].replace("_", " ")
 
             metadata = {
                 "grade_level": grade_level,
                 "section_type": section_type,
-                "subject_area": subject_area,
+                "subject_area": self.subject.replace('_', ' '),
             }
 
-            combined_text = f"{grade_level} {subject_area} {section_type}: \n{chunk.text}"
+            combined_text = f"{grade_level} {self.subject.replace('_', ' ')} {section_type}: \n{chunk.text}"
             processed_chunks.append({
                 "text": combined_text,
                 "metadata": metadata
@@ -271,11 +303,15 @@ class DocumentProcessor:
             
         return processed_chunks
 
+    def _standardize_filename_component(self, component: str) -> str:
+        """Standardize the filename component."""
+        return component.strip().lower().replace(" ", "_")
+
 def process_pdf(url: str, subject: str) -> bool:
     """Main function to process a PDF document."""
     try:
         print(f"\nStarting to process PDF from {url} for {subject}")
-        processor = DocumentProcessor()
+        processor = DocumentProcessor(subject)
         chunks = processor.chunk_document(url)
         
         if chunks:
@@ -297,7 +333,7 @@ def main():
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="Process PDF and create embeddings")
     parser.add_argument("url", help="URL of the PDF to process")
-    parser.add_argument("subject", help="Name of the subject")
+    parser.add_argument("--subject", required=True, help="Name of the subject (e.g., 'social studies', 'arts education')")
     args = parser.parse_args()
 
     print(f"Processing {args.url} for {args.subject}")
